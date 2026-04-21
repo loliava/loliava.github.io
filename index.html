@@ -1,11 +1,683 @@
-html
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <head>
-    <title>我的个人主页</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🔥 匠心铸技 · 智创未来 — 研发知识竞赛抢答</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 10%, #d32f2f 0%, #b71c1c 40%, #7f0000 100%);
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 喜庆装饰 */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg"><path d="M0 400 Q 150 250 300 400 T 600 400 T 900 400 T 1200 400 L 1200 800 L 0 800 Z" fill="rgba(255,215,0,0.08)"/><circle cx="100" cy="100" r="40" fill="rgba(255,240,150,0.12)"/><circle cx="1100" cy="150" r="70" fill="rgba(255,240,150,0.1)"/><circle cx="600" cy="700" r="120" fill="rgba(255,200,50,0.05)"/></svg>');
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .competition-container {
+            position: relative;
+            z-index: 5;
+            width: 1400px;
+            max-width: 100%;
+            background: rgba(90, 10, 10, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 3px solid #ffc107;
+            border-radius: 60px 60px 40px 40px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6), 0 0 0 4px #b71c1c inset, 0 0 30px #ffaa00;
+            padding: 25px 30px 35px;
+            transition: all 0.2s;
+        }
+
+        /* 头部区域 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 2px dashed #ffd966;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .title-section {
+            display: flex;
+            align-items: baseline;
+            gap: 15px;
+        }
+
+        .main-title {
+            font-size: 2.4rem;
+            font-weight: 900;
+            color: #ffecb3;
+            text-shadow: 6px 6px 0 #b71c1c, 2px 2px 15px #ffb300;
+            letter-spacing: 5px;
+        }
+
+        .sub-title {
+            font-size: 1.2rem;
+            color: #ffd966;
+            background: #8b0000;
+            padding: 5px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+            box-shadow: 0 0 10px gold;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-gold {
+            background: linear-gradient(145deg, #ffd966, #e6b800);
+            border: none;
+            border-radius: 50px;
+            padding: 12px 24px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #5d0000;
+            box-shadow: 0 8px 0 #7f2a00, 0 5px 15px rgba(255,215,0,0.6);
+            border: 1px solid #fff3bf;
+            cursor: pointer;
+            transition: all 0.1s;
+            letter-spacing: 2px;
+        }
+
+        .btn-gold:active {
+            transform: translateY(5px);
+            box-shadow: 0 3px 0 #7f2a00, 0 5px 12px gold;
+        }
+
+        .btn-red {
+            background: #c62828;
+            border: 2px solid #ffb74d;
+            color: #ffecb3;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 4px 0 #4a0000;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .btn-red:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #4a0000;
+        }
+
+        /* 题目面板 */
+        .question-panel {
+            background: rgba(30, 0, 0, 0.7);
+            border: 2px solid #ffb300;
+            border-radius: 50px;
+            padding: 25px 35px;
+            margin-bottom: 25px;
+            box-shadow: inset 0 0 20px #7a0000, 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .q-meta {
+            display: flex;
+            justify-content: space-between;
+            color: #ffd966;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .q-text {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #fff9e6;
+            line-height: 1.4;
+            text-shadow: 3px 3px 0 #7f0000;
+            margin-bottom: 25px;
+            word-break: break-word;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px 30px;
+        }
+
+        .option-item {
+            background: rgba(220, 40, 40, 0.25);
+            border: 2px solid #e6b800;
+            border-radius: 60px;
+            padding: 18px 25px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff3cd;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 5px 0 #5c0000, 0 0 15px #ffbb33;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: 0.2s;
+        }
+
+        .option-letter {
+            background: #ffc107;
+            color: #7a0000;
+            font-weight: 900;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 0 #7f2a00;
+            border: 2px solid #fff0b3;
+        }
+
+        .correct-highlight {
+            border: 5px solid #00e676 !important;
+            box-shadow: 0 0 35px #00ffaa, 0 5px 0 #1b5e20 !important;
+            background: rgba(0, 100, 0, 0.4);
+        }
+
+        /* 控制条 */
+        .control-bar {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin: 20px 0 30px;
+            flex-wrap: wrap;
+        }
+
+        .big-action-btn {
+            background: radial-gradient(circle at 20% 30%, #ffd966, #e68900);
+            border: 4px solid #fff1b5;
+            color: #6b0000;
+            font-weight: 900;
+            font-size: 2rem;
+            padding: 18px 40px;
+            border-radius: 80px;
+            box-shadow: 0 12px 0 #7f2a00, 0 10px 30px gold;
+            cursor: pointer;
+            min-width: 220px;
+            letter-spacing: 8px;
+            transition: 0.1s;
+        }
+
+        .big-action-btn:active {
+            transform: translateY(8px);
+            box-shadow: 0 4px 0 #7f2a00, 0 8px 20px gold;
+        }
+
+        .big-action-btn:disabled {
+            opacity: 0.5;
+            transform: none;
+            box-shadow: 0 8px 0 #7f2a00;
+            pointer-events: none;
+        }
+
+        /* 抢答状态 */
+        .buzz-status {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffd966;
+            text-shadow: 0 0 20px red;
+            margin-bottom: 10px;
+            min-height: 65px;
+        }
+
+        /* 队伍网格 */
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .team-card {
+            background: linear-gradient(145deg, #a51b1b, #7a0000);
+            border: 3px solid #ffb300;
+            border-radius: 30px;
+            padding: 20px 8px 15px;
+            box-shadow: 0 10px 0 #4a0000, 0 0 20px rgba(255,200,0,0.6);
+            text-align: center;
+            transition: all 0.15s;
+            position: relative;
+        }
+
+        .team-name {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #ffecb3;
+            text-shadow: 2px 2px 0 #9e0000;
+            margin-bottom: 10px;
+        }
+
+        .team-score {
+            font-size: 3.2rem;
+            font-weight: 900;
+            color: #ffd966;
+            background: #2c0000;
+            display: inline-block;
+            padding: 5px 25px;
+            border-radius: 50px;
+            border: 2px solid gold;
+            margin-bottom: 15px;
+            box-shadow: inset 0 0 8px black;
+        }
+
+        .team-buzz-btn {
+            background: #f9a825;
+            border: none;
+            border-radius: 60px;
+            padding: 16px 5px;
+            width: 90%;
+            font-weight: 900;
+            font-size: 1.4rem;
+            color: #3d0000;
+            box-shadow: 0 6px 0 #7f2a00, 0 0 15px #ffc107;
+            border: 2px solid #ffecb3;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: 0.08s;
+        }
+
+        .team-buzz-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #7f2a00, 0 0 20px #ffc107;
+        }
+
+        .team-buzz-btn:disabled {
+            opacity: 0.4;
+            transform: none;
+            box-shadow: 0 4px 0 #7f2a00;
+            pointer-events: none;
+        }
+
+        .score-actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .score-btn {
+            background: #b71c1c;
+            border: 2px solid #ffb300;
+            color: #ffd966;
+            font-weight: bold;
+            font-size: 1.5rem;
+            width: 55px;
+            height: 55px;
+            border-radius: 30px;
+            box-shadow: 0 4px 0 #4a0000;
+            cursor: pointer;
+        }
+
+        .buzzed-highlight {
+            box-shadow: 0 0 0 8px #ffd700, 0 10px 0 #4a0000, 0 0 40px #ffaa00;
+            transform: scale(1.02);
+            border-color: #fff3b3;
+        }
+
+        .footer-note {
+            margin-top: 25px;
+            color: #ffd966;
+            text-align: right;
+            font-size: 1.2rem;
+        }
+
+        .answer-tip {
+            font-size: 1.3rem;
+            color: #adebad;
+        }
+        .fullscreen-btn {
+            background: #b8860b;
+        }
+    </style>
 </head>
 <body>
-    <h1>你好，世界！</h1>
-    <p>这是我的个人网站，正在建设中...</p>
+<div class="competition-container">
+    <!-- 头部 -->
+    <div class="header">
+        <div class="title-section">
+            <span class="main-title">⚡匠心铸技·智创未来⚡</span>
+            <span class="sub-title">研发中心·团队争霸</span>
+        </div>
+        <div class="top-actions">
+            <button class="btn-gold" id="fullscreenBtn">🖥️ 全屏</button>
+            <button class="btn-red" id="resetAllScores">🔄 重置分数</button>
+            <button class="btn-red" id="nextQuestionBtn">⏩ 下一题</button>
+        </div>
+    </div>
+
+    <!-- 题目区域 -->
+    <div class="question-panel">
+        <div class="q-meta">
+            <span id="questionIndex">第1 / 28题</span>
+            <span id="questionType">🔥 单选题 · 10分</span>
+        </div>
+        <div class="q-text" id="questionText">加载题库中...</div>
+        <div class="options-grid" id="optionsContainer"></div>
+    </div>
+
+    <!-- 中央控制 -->
+    <div class="control-bar">
+        <button class="big-action-btn" id="startBuzzBtn">🔔 开始抢答</button>
+        <button class="big-action-btn" id="showAnswerBtn">📢 公布答案</button>
+        <button class="big-action-btn" id="resetBuzzBtn">🔄 重置抢答</button>
+    </div>
+
+    <!-- 抢答状态 -->
+    <div class="buzz-status" id="buzzStatus">✨ 等待主持人开始抢答 ✨</div>
+
+    <!-- 六支队伍 -->
+    <div class="teams-grid" id="teamsContainer"></div>
+    
+    <!-- 快捷操作 -->
+    <div style="display: flex; justify-content: center; gap: 30px; margin-top: 25px;">
+        <button class="btn-gold" id="correctBtn" style="font-size:1.8rem; padding:12px 40px;">✅ 回答正确 (+分)</button>
+        <button class="btn-red" id="wrongBtn" style="font-size:1.8rem; padding:12px 40px;">❌ 回答错误 (-分)</button>
+    </div>
+    <div class="footer-note">商用电器事业部 · 研发中心 · 首届技能挑战赛</div>
+</div>
+
+<script>
+    (function(){
+        "use strict";
+
+        // ---------- 从题库文件精选题目 (融合单选+判断) ----------
+        const BANK = [
+            // 单选题
+            { type: '单选', question: '中德工厂二线的质量经理是谁？', options: ['刘方旭', '冯斌', '于照宝', '成龙'], answer: 'B' },
+            { type: '单选', question: '中德工厂一、二线哪条线体有缠绕膜包装机？', options: ['一线', '二线', '都没有', '都有'], answer: 'D' },
+            { type: '单选', question: '目前同等规格下EPS和EPE哪个材料便宜？', options: ['EPS', 'EPE', '一样'], answer: 'A' },
+            { type: '单选', question: '中德工厂有没有喷粉设备？', options: ['有', '没有'], answer: 'B' },
+            { type: '单选', question: '2701是哪个工厂的代号', options: ['智慧冷链工厂', '澳兴采购工厂', '智慧冷链辅助工厂', '智慧冷链商用展示柜工厂'], answer: 'A' },
+            { type: '单选', question: '企标要求彩图钢板的基材镀锌钢板双面镀锌量是多少？', options: ['60g/m³', '70g/m³', '80g/m³', '100g/m³'], answer: 'A' },
+            { type: '单选', question: '我司吸塑内胆用的什么材质？', options: ['HIPS', 'PP', 'ABS', 'PC'], answer: 'A' },
+            { type: '单选', question: '某注塑件需要良好的耐冲击性，可选取材料', options: ['PP', 'ABS', 'PS', 'PA'], answer: 'B' },
+            { type: '单选', question: '商用冷柜设计序号位字母P表示', options: ['经济型', '普通型', '变频', '平门'], answer: 'C' },
+            { type: '单选', question: '安全电压通常指一般环境条件下允许持续接触的不高于（  ）的安全特低电压。', options: ['50V', '12V', '24V', '36V'], answer: 'D' },
+            { type: '单选', question: '属于冰杯柜系列的是', options: ['SD-280', 'SD-100F', 'SC/SD-156FB', 'SC-307'], answer: 'C' },
+            { type: '单选', question: 'CKD出口方式指', options: ['全散', '半散', '原料', '整机'], answer: 'A' },
+            { type: '单选', question: '印刷三原色是指（  ）、品红、黄三种颜色。', options: ['蓝', '绿', '青', '灰'], answer: 'C' },
+            { type: '单选', question: 'GB/T21001.2中实验室气候类型一共有（  ）种', options: ['6', '7', '8', '9'], answer: 'D' },
+            { type: '单选', question: 'M包温度分类中H1对应的温度区间是', options: ['-1~+5', '-1~+7', '-1~+10', '+1~+10'], answer: 'D' },
+            { type: '单选', question: 'GB 4706系列标准的核心目的是（  ）', options: ['规范电器外观设计', '保障家用和类似用途电器的安全使用', '提升电器能效等级', '统一电器接口标准'], answer: 'B' },
+            { type: '单选', question: '电器外壳的防护等级（IP代码）中，第一个数字表示（  ）', options: ['防液体侵入能力', '防固体异物侵入能力', '防触电保护能力', '防水密封能力'], answer: 'B' },
+            { type: '单选', question: '潘通（PANTONE）色卡的核心应用场景不包括以下哪项？', options: ['印刷行业色彩标样', '纺织面料色彩匹配', '电子屏幕色彩直出', '包装设计色彩规范'], answer: 'C' },
+            { type: '单选', question: 'CMF 在工业设计中指的是什么？', options: ['颜色、材料、表面处理', '成本、制造、功能', '概念、模型、最终产品', '计算机辅助设计、制造、工程'], answer: 'A' },
+            // 判断题 (选项固定为正确/错误)
+            { type: '判断', question: '目前展示柜没有可配合叉车使用的底垫。', options: ['正确', '错误'], answer: 'B' }, // 错误
+            { type: '判断', question: 'EPS侧护比EPE侧护更易碎。', options: ['正确', '错误'], answer: 'A' },
+            { type: '判断', question: '零部件首次封样时需要外检先签字再由研发签字。', options: ['正确', '错误'], answer: 'A' },
+            { type: '判断', question: 'JIT部门有定价权。', options: ['正确', '错误'], answer: 'B' },
+            { type: '判断', question: 'PLM即产品生命周期管理，是一种全面管理产品全过程的技术和业务模式。', options: ['正确', '错误'], answer: 'A' },
+            { type: '判断', question: '注塑件加强筋布置的方向应与熔体流动的方向一致。', options: ['正确', '错误'], answer: 'A' },
+            { type: '判断', question: '冷柜蒸发器常见结构样式有盘管式、丝管式、翅片式等。', options: ['正确', '错误'], answer: 'A' },
+            { type: '判断', question: 'Ⅰ类电器不需要接地装置，仅依靠基本绝缘就能实现防触电保护。', options: ['正确', '错误'], answer: 'B' },
+            { type: '判断', question: '潘通色卡的色彩全球统一，不同批次的同色号色卡色彩无差异。', options: ['正确', '错误'], answer: 'B' },
+            { type: '判断', question: 'ABS 塑料因其无毒无味、耐冲击且易于电镀的特性，被广泛应用于电子产品外壳。', options: ['正确', '错误'], answer: 'A' },
+            { type: '判断', question: '企业标准库信息每3年更新一次。', options: ['正确', '错误'], answer: 'B' }, // 每半年
+        ];
+
+        // ---------- 全局变量 ----------
+        let teams = [
+            { name: '🔥 超越队', score: 0 },
+            { name: '⚙️ 智造队', score: 0 },
+            { name: '❄️ 冷锋队', score: 0 },
+            { name: '💡 创新队', score: 0 },
+            { name: '🏆 先锋队', score: 0 },
+            { name: '🚀 卓越队', score: 0 }
+        ];
+        
+        let currentIndex = 0;                // 当前题目索引
+        let currentQuestion = BANK[0];
+        let buzzActive = false;              // 抢答是否激活
+        let buzzedTeam = null;              // 抢到的队伍索引 (0-5)
+        let lockBuzz = false;               // 是否已有人抢答锁定
+        let showAnswerFlag = false;          // 是否显示了答案
+        const baseScore = 10;
+
+        // DOM 元素
+        const qIndexSpan = document.getElementById('questionIndex');
+        const qTypeSpan = document.getElementById('questionType');
+        const qText = document.getElementById('questionText');
+        const optionsDiv = document.getElementById('optionsContainer');
+        const buzzStatus = document.getElementById('buzzStatus');
+        const teamsContainer = document.getElementById('teamsContainer');
+        const startBuzzBtn = document.getElementById('startBuzzBtn');
+        const showAnswerBtn = document.getElementById('showAnswerBtn');
+        const resetBuzzBtn = document.getElementById('resetBuzzBtn');
+        const correctBtn = document.getElementById('correctBtn');
+        const wrongBtn = document.getElementById('wrongBtn');
+        const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+        const resetAllScores = document.getElementById('resetAllScores');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        // 渲染队伍卡片
+        function renderTeams() {
+            teamsContainer.innerHTML = '';
+            teams.forEach((team, idx) => {
+                const card = document.createElement('div');
+                card.className = 'team-card';
+                if (buzzedTeam === idx) card.classList.add('buzzed-highlight');
+                card.innerHTML = `
+                    <div class="team-name">${team.name}</div>
+                    <div class="team-score" id="team-score-${idx}">${team.score}</div>
+                    <button class="team-buzz-btn" data-team="${idx}" id="buzz-btn-${idx}">🔴 抢答</button>
+                    <div class="score-actions">
+                        <button class="score-btn" data-team="${idx}" data-delta="1">➕</button>
+                        <button class="score-btn" data-team="${idx}" data-delta="-1">➖</button>
+                    </div>
+                `;
+                teamsContainer.appendChild(card);
+            });
+            // 绑定抢答按钮事件
+            document.querySelectorAll('.team-buzz-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const teamIdx = parseInt(btn.dataset.team);
+                    handleBuzz(teamIdx);
+                });
+            });
+            // 绑定加减分
+            document.querySelectorAll('.score-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const teamIdx = parseInt(btn.dataset.team);
+                    const delta = parseInt(btn.dataset.delta);
+                    teams[teamIdx].score = Math.max(0, teams[teamIdx].score + delta);
+                    updateScoresUI();
+                });
+            });
+            updateScoresUI();
+        }
+
+        function updateScoresUI() {
+            teams.forEach((team, idx) => {
+                const span = document.getElementById(`team-score-${idx}`);
+                if (span) span.innerText = team.score;
+            });
+        }
+
+        // 渲染题目
+        function renderQuestion() {
+            const q = currentQuestion;
+            qIndexSpan.innerText = `第${currentIndex+1} / ${BANK.length}题`;
+            qTypeSpan.innerText = `${q.type} · ${baseScore}分`;
+            qText.innerText = q.question;
+            
+            const opts = q.options;
+            let html = '';
+            const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+            for (let i=0; i<opts.length; i++) {
+                html += `<div class="option-item" data-opt-index="${i}">
+                    <span class="option-letter">${letters[i]}</span>
+                    <span>${opts[i]}</span>
+                </div>`;
+            }
+            optionsDiv.innerHTML = html;
+            
+            // 清除高亮
+            document.querySelectorAll('.option-item').forEach(el => el.classList.remove('correct-highlight'));
+            showAnswerFlag = false;
+        }
+
+        // 高亮正确答案
+        function highlightCorrectAnswer() {
+            const ans = currentQuestion.answer;
+            const letters = ['A','B','C','D','E','F'];
+            const targetIndex = letters.indexOf(ans);
+            if (targetIndex !== -1) {
+                const items = document.querySelectorAll('.option-item');
+                if (items[targetIndex]) {
+                    items[targetIndex].classList.add('correct-highlight');
+                }
+            }
+            showAnswerFlag = true;
+        }
+
+        // 抢答逻辑
+        function handleBuzz(teamIdx) {
+            if (!buzzActive) {
+                buzzStatus.innerText = `⛔ 抢答尚未开始，请等待主持人指令！`;
+                return;
+            }
+            if (lockBuzz || buzzedTeam !== null) {
+                buzzStatus.innerText = `⚠️ 已有队伍抢答，本轮锁定`;
+                return;
+            }
+            // 抢答成功
+            buzzedTeam = teamIdx;
+            lockBuzz = true;
+            buzzActive = false;
+            buzzStatus.innerText = `🎉 第${teamIdx+1}组 [${teams[teamIdx].name}] 抢答成功！请作答！`;
+            // 禁用所有抢答按钮
+            document.querySelectorAll('.team-buzz-btn').forEach(btn => btn.disabled = true);
+            // 高亮卡片
+            renderTeams(); 
+        }
+
+        // 重置抢答状态 (保留分数)
+        function resetBuzzState() {
+            buzzActive = false;
+            buzzedTeam = null;
+            lockBuzz = false;
+            buzzStatus.innerText = '✨ 抢答已重置，等待开始 ✨';
+            document.querySelectorAll('.team-buzz-btn').forEach(btn => btn.disabled = false);
+            // 移除高亮
+            renderTeams();
+        }
+
+        // 开始抢答
+        function startBuzz() {
+            if (lockBuzz || buzzedTeam !== null) {
+                if(confirm('当前已有抢答结果，确定重新开始抢答？')) {
+                    resetBuzzState();
+                } else return;
+            }
+            buzzActive = true;
+            lockBuzz = false;
+            buzzedTeam = null;
+            buzzStatus.innerText = '🔔 抢答进行中！ 快按抢答按钮！！！';
+            document.querySelectorAll('.team-buzz-btn').forEach(btn => btn.disabled = false);
+            renderTeams();
+        }
+
+        // 下一题
+        function nextQuestion() {
+            currentIndex = (currentIndex + 1) % BANK.length;
+            currentQuestion = BANK[currentIndex];
+            resetBuzzState();
+            renderQuestion();
+            // 清除答案高亮
+        }
+
+        // 加分/扣分
+        function applyScore(isCorrect) {
+            if (buzzedTeam === null) {
+                alert('还没有队伍抢答，无法判定！');
+                return;
+            }
+            const teamIdx = buzzedTeam;
+            if (isCorrect) {
+                teams[teamIdx].score += baseScore;
+                buzzStatus.innerText = `✅ 第${teamIdx+1}组回答正确！ +${baseScore}分`;
+            } else {
+                teams[teamIdx].score = Math.max(0, teams[teamIdx].score - baseScore);
+                buzzStatus.innerText = `❌ 第${teamIdx+1}组回答错误 -${baseScore}分`;
+            }
+            updateScoresUI();
+            // 判分后锁定抢答，但保留高亮
+            lockBuzz = true;
+            buzzActive = false;
+            document.querySelectorAll('.team-buzz-btn').forEach(btn => btn.disabled = true);
+            renderTeams();
+        }
+
+        // 初始化
+        function init() {
+            renderTeams();
+            currentQuestion = BANK[0];
+            renderQuestion();
+            resetBuzzState();
+            
+            // 事件绑定
+            startBuzzBtn.addEventListener('click', startBuzz);
+            showAnswerBtn.addEventListener('click', ()=>{
+                highlightCorrectAnswer();
+                buzzStatus.innerText = '📢 正确答案已高亮，请裁判判定';
+            });
+            resetBuzzBtn.addEventListener('click', ()=>{
+                resetBuzzState();
+                // 同时清除答案高亮
+                document.querySelectorAll('.option-item').forEach(el => el.classList.remove('correct-highlight'));
+                showAnswerFlag = false;
+            });
+            correctBtn.addEventListener('click', ()=> applyScore(true));
+            wrongBtn.addEventListener('click', ()=> applyScore(false));
+            nextQuestionBtn.addEventListener('click', ()=>{
+                nextQuestion();
+                document.querySelectorAll('.option-item').forEach(el => el.classList.remove('correct-highlight'));
+            });
+            resetAllScores.addEventListener('click', ()=>{
+                teams.forEach(t => t.score = 0);
+                updateScoresUI();
+                buzzStatus.innerText = '✨ 分数已归零，重新出发 ✨';
+            });
+            fullscreenBtn.addEventListener('click', ()=>{
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            });
+        }
+
+        init();
+    })();
+</script>
 </body>
 </html>
