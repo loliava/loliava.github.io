@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>研发技能竞赛 · 抢答系统 (多题型版)</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei", sans-serif; }
+        body { background: #0f1941; color: #fff; overflow-x: hidden; }
+        .pc-container { display: block; width: 100vw; min-height: 100vh; padding: 20px; }
+        .header { text-align: center; padding: 15px 0; border-bottom: 2px solid #42b983; }
+        .header h1 { font-size: 32px; color: #42b983; }
+        .question-area { margin: 30px auto; width: 90%; min-height: 250px; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 30px; border: 1px solid #42b983; }
+        .question-type { display: inline-block; padding: 5px 12px; background: #42b983; color: #fff; border-radius: 4px; font-size: 14px; margin-right: 10px; margin-bottom: 15px; }
+        .question-title { font-size: 24px; margin-bottom: 20px; line-height: 1.6; }
+        .options-area { margin-top: 15px; padding-left: 20px; }
+        .option-item { font-size: 18px; color: #ddd; margin-bottom: 8px; }
+        .answer-block { font-size: 18px; color: #ccc; line-height: 1.8; margin-top: 20px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; }
+        .control-group { text-align: center; margin: 20px 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        .control-btn { padding: 12px 30px; font-size: 18px; background: #42b983; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+        .room-info { text-align: center; margin: 15px 0; font-size: 20px; color: #ffd700; }
+        .team-result { text-align: center; margin-top: 20px; font-size: 32px; color: #ffd700; font-weight: bold; min-height: 60px; }
+        .team-grid { display: flex; justify-content: center; gap: 20px; margin-top: 30px; flex-wrap: wrap; }
+        .team-item { width: 160px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid #fff; transition: all 0.3s; }
+        .team-item.active { background: #ffd700; color: #000; border-color: #ffd700; transform: scale(1.1); box-shadow: 0 0 25px rgba(255,215,0,0.7); font-weight: bold; }
+        .phone-container { display: none; width: 100vw; min-height: 100vh; background: #0f1941; padding: 20px; }
+        .phone-title { text-align: center; font-size: 24px; color: #42b983; margin-bottom: 40px; padding-top: 30px; }
+        .join-section { margin: 50px auto 0; width: 90%; }
+        .input-field { width: 100%; height: 50px; font-size: 18px; padding: 0 15px; border-radius: 8px; border: none; margin-bottom: 20px; }
+        .action-btn { width: 100%; height: 50px; font-size: 20px; background: #42b983; color: #fff; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 15px; }
+        .error-tip { text-align: center; color: #e63946; margin-top: 15px; display: none; }
+        .answer-section { display: none; margin-top: 40px; }
+        .team-info { text-align: center; font-size: 28px; color: #ffd700; margin-bottom: 50px; font-weight: bold; }
+        .answer-btn { width: 100%; height: 140px; font-size: 36px; background: #e63946; color: #fff; border: none; border-radius: 15px; font-weight: bold; }
+        .status-tip { text-align: center; margin-top: 30px; color: #ccc; font-size: 18px; }
+        @media (max-width: 768px) { .pc-container { display: none !important; } .phone-container { display: block !important; } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<!-- 电脑端 - 主持人界面 -->
+<div class="pc-container">
+    <div class="header"><h1>商用电器事业部研发技能竞赛<br>团队知识抢答赛</h1></div>
+    <div class="room-info">🏠 房间号：<strong id="roomIdDisplay">正在生成...</strong> (手机端输入此号加入)</div>
+    <div class="question-area">
+        <div id="questionType" class="question-type">题目类型：加载中...</div>
+        <div class="question-title" id="question">正在加载题库...</div>
+        <div class="options-area" id="optionsArea"></div>
+        <div class="answer-block" id="answerBlock">
+            <div id="answerText">参考答案：等待出题</div>
+        </div>
+    </div>
+    <div class="control-group">
+        <button class="control-btn" onclick="nextQuestion()">🎲 随机出题</button>
+        <button class="control-btn" onclick="toggleAnswer()">🔎 显示答案</button>
+        <button class="control-btn" onclick="clearAnswer()">🔄 清空抢答</button>
+    </div>
+    <div class="team-result" id="showTeam">等待抢答...</div>
+    <div class="team-grid">
+        <div class="team-item" id="t1">研发一队</div>
+        <div class="team-item" id="t2">研发二队</div>
+        <div class="team-item" id="t3">研发三队</div>
+        <div class="team-item" id="t4">研发四队</div>
+        <div class="team-item" id="t5">研发五队</div>
+        <div class="team-item" id="t6">研发六队</div>
+    </div>
+</div>
+
+<!-- 手机端 - 抢答器（不变） -->
+<div class="phone-container">
+    <div class="phone-title">团队抢答器</div>
+    <div class="join-section" id="joinSection">
+        <input type="text" class="input-field" id="roomIdInput" placeholder="请输入主持人房间号">
+        <input type="password" class="input-field" id="teamPassword" placeholder="请输入本队抢答密码">
+        <button class="action-btn" onclick="joinRoom()">加入房间</button>
+        <div class="error-tip" id="errorTip">房间号或密码错误</div>
+    </div>
+    <div class="answer-section" id="answerSection">
+        <div class="team-info" id="teamInfo">研发一队</div>
+        <button class="answer-btn" id="answerBtn" disabled onclick="sendAnswer()">我要抢答</button>
+        <div class="status-tip" id="statusTip">等待主持人出题...</div>
+    </div>
+</div>
+
+<script>
+    // ==================== 全局配置 ====================
+    const teamConfig = [
+        {id: 1, name: "研发一队", password: "dev001"},
+        {id: 2, name: "研发二队", password: "dev002"},
+        {id: 3, name: "研发三队", password: "dev003"},
+        {id: 4, name: "研发四队", password: "dev004"},
+        {id: 5, name: "研发五队", password: "dev005"},
+        {id: 6, name: "研发六队", password: "dev006"}
+    ];
+
+    let allQuestions = [];
+    let currentTeam = null;
+    let isHost = window.innerWidth > 768;
+    let canAnswer = false;
+    let answerLocked = false;
+    let peer = null;
+    let connections = [];
+    let hostPeerId = null;
+    let currentAnswer = '';       // 当前题目的答案
+    let showAnswerFlag = false;   // 答案是否显示
+
+    // ==================== 初始化 PeerJS ====================
+    function initPeer() {
+        peer = new Peer(undefined, {
+            host: '0.peerjs.com',
+            port: 443,
+            secure: true,
+            debug: 1
+        });
+
+        peer.on('open', (id) => {
+            if (isHost) {
+                hostPeerId = id;
+                document.getElementById('roomIdDisplay').innerText = id;
+            }
+        });
+
+        peer.on('connection', (conn) => {
+            console.log('新手机连接:', conn.peer);
+            connections.push(conn);
+            conn.on('data', (data) => handleIncomingMessage(data, conn));
+            conn.on('close', () => connections = connections.filter(c => c.peer !== conn.peer));
+        });
+
+        peer.on('error', (err) => {
+            console.error('PeerJS 错误:', err);
+            if (isHost) alert('通信连接出错，请刷新页面重试');
+        });
+    }
+
+    function handleIncomingMessage(data, conn) {
+        if (isHost) {
+            if (data.type === 'buzz' && canAnswer && !answerLocked) {
+                const teamId = data.teamId;
+                const team = teamConfig.find(t => t.id === teamId);
+                if (!team) return;
+                answerLocked = true;
+                canAnswer = false;
+                document.getElementById('showTeam').innerText = `【${team.name}】抢答成功！`;
+                document.querySelectorAll('.team-item').forEach(item => item.classList.remove('active'));
+                document.getElementById(`t${teamId}`).classList.add('active');
+                connections.forEach(c => c.send({ type: 'buzzResult', success: true, teamName: team.name }));
+                broadcastState();
+            }
+        } else {
+            switch (data.type) {
+                case 'state':
+                    canAnswer = data.canAnswer;
+                    answerLocked = data.answerLocked;
+                    updatePhoneUI();
+                    break;
+                case 'buzzResult':
+                    if (data.success) {
+                        document.getElementById('statusTip').innerText = `【${data.teamName}】抢答成功！`;
+                        document.getElementById('answerBtn').disabled = true;
+                    }
+                    break;
+            }
+        }
+    }
+
+    function broadcastState() {
+        if (!isHost) return;
+        connections.forEach(c => c.send({ type: 'state', canAnswer, answerLocked }));
+    }
+
+    function updatePhoneUI() {
+        if (isHost) return;
+        const btn = document.getElementById('answerBtn');
+        const tip = document.getElementById('statusTip');
+        if (canAnswer && !answerLocked) {
+            btn.disabled = false;
+            tip.innerText = '主持人已出题，可抢答！';
+        } else if (answerLocked) {
+            btn.disabled = true;
+            tip.innerText = '抢答已结束';
+        } else {
+            btn.disabled = true;
+            tip.innerText = '等待主持人出题...';
+        }
+    }
+
+    // ==================== 题库加载 (适配新Excel结构) ====================
+    async function loadQuestionsFromFile() {
+        try {
+            const response = await fetch('./研发知识题库.xlsx');
+            if (!response.ok) throw new Error('题库文件不存在');
+            const data = await response.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            // 直接转为二维数组，然后逐行解析
+            const sheetData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+            allQuestions = [];
+            // 跳过可能的表头行（假设第一行是标题，从第二行开始）
+            for (let i = 1; i < sheetData.length; i++) {
+                const row = sheetData[i];
+                if (!row || row.length === 0) continue;
+                const question = row[0]?.toString().trim();
+                const answer = row[1]?.toString().trim().toUpperCase();
+                if (!question || !answer) continue;
+                
+                // 提取选项 (C列索引2 到 J列索引9)
+                const options = [];
+                for (let j = 2; j <= 9; j++) {
+                    if (row[j] && row[j].toString().trim() !== '') {
+                        options.push(row[j].toString().trim());
+                    }
+                }
+                
+                // 判断题型
+                let type = '未知';
+                if (options.length === 2) {
+                    type = '判断';
+                } else if (options.length >= 3) {
+                    if (answer.length === 1 && /[A-Z]/.test(answer)) {
+                        type = '单选';
+                    } else if (answer.length > 1) {
+                        type = '多选';
+                    } else {
+                        type = '单选'; // fallback
+                    }
+                } else if (options.length === 0) {
+                    type = '问答';
+                }
+                
+                allQuestions.push({
+                    question,
+                    answer,
+                    options,
+                    type
+                });
+            }
+            
+            if (isHost) {
+                document.getElementById('questionType').innerText = `题库已加载 ${allQuestions.length} 题 (含单选/多选/判断/问答)`;
+                document.getElementById('question').innerText = '题库就绪，点击【随机出题】开始';
+                document.getElementById('answerText').innerText = '参考答案：等待出题';
+                document.getElementById('optionsArea').innerHTML = '';
+            }
+            console.log(`✅ 题库加载成功，共 ${allQuestions.length} 题`);
+        } catch (err) {
+            console.error('题库加载失败:', err);
+            if (isHost) {
+                document.getElementById('question').innerText = '题库加载失败，请确保 研发知识题库.xlsx 与 index.html 在同一目录';
+            }
+        }
+    }
+
+    // ==================== 电脑端功能 ====================
+    window.nextQuestion = function() {
+        if (!isHost) return;
+        if (allQuestions.length === 0) {
+            alert('题库尚未加载完成，请稍候');
+            return;
+        }
+        
+        // 随机抽取一道题
+        const q = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+        currentAnswer = q.answer;
+        
+        // 更新界面
+        document.getElementById('questionType').innerText = `题目类型：${q.type}`;
+        document.getElementById('question').innerText = q.question;
+        
+        // 显示选项
+        const optionsDiv = document.getElementById('optionsArea');
+        if (q.options && q.options.length > 0) {
+            const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+            let html = '';
+            q.options.forEach((opt, idx) => {
+                html += `<div class="option-item"><strong>${letters[idx]}</strong>. ${opt}</div>`;
+            });
+            optionsDiv.innerHTML = html;
+        } else {
+            optionsDiv.innerHTML = '<div class="option-item">(本题无选项，请口头作答)</div>';
+        }
+        
+        // 答案默认隐藏
+        showAnswerFlag = false;
+        document.getElementById('answerText').innerText = '参考答案：********';
+        
+        // 重置抢答状态
+        canAnswer = true;
+        answerLocked = false;
+        document.getElementById('showTeam').innerText = '等待抢答...';
+        document.querySelectorAll('.team-item').forEach(item => item.classList.remove('active'));
+        
+        broadcastState();
+    };
+
+    // 切换答案显示
+    window.toggleAnswer = function() {
+        if (!isHost) return;
+        showAnswerFlag = !showAnswerFlag;
+        const answerElem = document.getElementById('answerText');
+        if (showAnswerFlag) {
+            answerElem.innerText = `参考答案：${currentAnswer}`;
+        } else {
+            answerElem.innerText = '参考答案：********';
+        }
+    };
+
+    window.clearAnswer = function() {
+        if (!isHost) return;
+        canAnswer = false;
+        answerLocked = false;
+        document.getElementById('showTeam').innerText = '等待抢答...';
+        document.querySelectorAll('.team-item').forEach(item => item.classList.remove('active'));
+        // 不清除题目和答案内容，仅重置抢答状态
+        broadcastState();
+    };
+
+    // ==================== 手机端功能 ====================
+    window.joinRoom = function() {
+        const roomId = document.getElementById('roomIdInput').value.trim();
+        const pwd = document.getElementById('teamPassword').value.trim();
+        const team = teamConfig.find(t => t.password === pwd);
+        
+        if (!roomId || !team) {
+            document.getElementById('errorTip').style.display = 'block';
+            setTimeout(() => document.getElementById('errorTip').style.display = 'none', 2000);
+            return;
+        }
+        
+        currentTeam = team;
+        const conn = peer.connect(roomId, { reliable: true });
+        conn.on('open', () => {
+            document.getElementById('joinSection').style.display = 'none';
+            document.getElementById('answerSection').style.display = 'block';
+            document.getElementById('teamInfo').innerText = team.name;
+            conn.on('data', (data) => handleIncomingMessage(data, conn));
+        });
+        conn.on('error', () => alert('连接失败，请检查房间号是否正确'));
+    };
+
+    window.sendAnswer = function() {
+        if (!currentTeam || !canAnswer || answerLocked) return;
+        const conns = Object.values(peer.connections).flat();
+        if (conns.length > 0) {
+            conns[0].send({ type: 'buzz', teamId: currentTeam.id });
+            document.getElementById('answerBtn').disabled = true;
+            document.getElementById('statusTip').innerText = '抢答已提交，等待结果...';
+        }
+    };
+
+    // ==================== 初始化 ====================
+    window.onload = async function() {
+        initPeer();
+        await loadQuestionsFromFile();
+        if (isHost) {
+            setTimeout(() => {
+                if (!hostPeerId) alert('正在连接信令服务器，请稍候...\n如果长时间无房间号，请刷新页面。');
+            }, 2000);
+        }
+    };
+</script>
+</body>
+</html>
