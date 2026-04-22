@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>研发技能竞赛 - 团队抢答系统</title>
+    <title>研发技能竞赛 - 团队抢答系统（升级版）</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -40,11 +41,12 @@
         .question-area {
             margin: 30px auto;
             width: 90%;
-            min-height: 200px;
+            min-height: 250px;
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
             padding: 30px;
             border: 1px solid #42b983;
+            overflow-y: auto;
         }
 
         .question-title {
@@ -53,10 +55,22 @@
             line-height: 1.6;
         }
 
+        .question-type {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #42b983;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 15px;
+        }
+
         .answer-block {
             font-size: 18px;
             color: #ccc;
             line-height: 1.8;
+            margin-top: 20px;
         }
 
         .control-group {
@@ -83,45 +97,50 @@
         .team-result {
             text-align: center;
             margin-top: 20px;
-            font-size: 28px;
+            font-size: 32px;
             color: #ffd700;
             font-weight: bold;
-            min-height: 50px;
+            min-height: 60px;
+            padding: 10px 0;
         }
 
         .team-grid {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            margin-top: 20px;
+            gap: 20px;
+            margin-top: 30px;
             flex-wrap: wrap;
         }
 
         .team-item {
-            width: 140px;
-            height: 70px;
+            width: 160px;
+            height: 80px;
             background: rgba(255,255,255,0.1);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            border: 1px solid #fff;
+            font-size: 20px;
+            border: 2px solid #fff;
+            transition: 0.3s;
         }
 
         .team-item.active {
             background: #ffd700;
             color: #000;
             border-color: #ffd700;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
         }
 
-        /* 手机端抢答器样式 */
+        /* 手机端样式 */
         .phone-container {
             display: none;
             width: 100vw;
             height: 100vh;
             background: #0f1941;
             padding: 20px;
+            position: relative;
         }
 
         .phone-title {
@@ -132,39 +151,77 @@
             padding-top: 30px;
         }
 
-        .team-select {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 50px;
+        /* 密码验证区域 */
+        .password-section {
+            margin: 50px auto 0;
+            width: 90%;
         }
 
-        .team-btn {
-            height: 80px;
+        .password-input {
+            width: 100%;
+            height: 50px;
+            font-size: 18px;
+            padding: 0 15px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 20px;
+        }
+
+        .login-btn {
+            width: 100%;
+            height: 50px;
             font-size: 20px;
             background: #42b983;
             color: #fff;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
+        }
+
+        .error-tip {
+            text-align: center;
+            color: #e63946;
+            margin-top: 15px;
+            font-size: 16px;
+            display: none;
+        }
+
+        /* 抢答区域（默认隐藏） */
+        .answer-section {
+            display: none;
+            margin-top: 40px;
+        }
+
+        .team-info {
+            text-align: center;
+            font-size: 28px;
+            color: #ffd700;
+            margin-bottom: 50px;
+            font-weight: bold;
         }
 
         .answer-btn {
             width: 100%;
-            height: 120px;
-            font-size: 32px;
+            height: 140px;
+            font-size: 36px;
             background: #e63946;
             color: #fff;
             border: none;
             border-radius: 15px;
             font-weight: bold;
+            transition: 0.3s;
         }
 
-        .tip {
+        .answer-btn:active {
+            transform: scale(0.95);
+            background: #c1121f;
+        }
+
+        .status-tip {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 30px;
             color: #ccc;
-            font-size: 14px;
+            font-size: 18px;
         }
 
         /* 响应式判断 */
@@ -183,11 +240,13 @@
     </div>
 
     <div class="question-area">
-        <div class="question-title" id="question">点击【随机出题】开始比赛</div>
-        <div class="answer-block" id="answer"></div>
+        <div id="questionType" class="question-type">题目类型：未加载</div>
+        <div class="question-title" id="question">点击【加载题库】后开始出题</div>
+        <div class="answer-block" id="answer">参考答案：待加载</div>
     </div>
 
     <div class="control-group">
+        <button class="control-btn" onclick="loadExcelQuestions()">加载题库</button>
         <button class="control-btn" onclick="nextQuestion()">随机出题</button>
         <button class="control-btn" onclick="clearAnswer()">清空抢答</button>
     </div>
@@ -195,76 +254,130 @@
     <div class="team-result" id="showTeam">等待抢答...</div>
 
     <div class="team-grid">
-        <div class="team-item" id="t1">第一组</div>
-        <div class="team-item" id="t2">第二组</div>
-        <div class="team-item" id="t3">第三组</div>
-        <div class="team-item" id="t4">第四组</div>
-        <div class="team-item" id="t5">第五组</div>
-        <div class="team-item" id="t6">第六组</div>
+        <div class="team-item" id="t1">研发一队</div>
+        <div class="team-item" id="t2">研发二队</div>
+        <div class="team-item" id="t3">研发三队</div>
+        <div class="team-item" id="t4">研发四队</div>
+        <div class="team-item" id="t5">研发五队</div>
+        <div class="team-item" id="t6">研发六队</div>
     </div>
 </div>
 
-<!-- 手机端 - 抢答器 -->
+<!-- 手机端 - 抢答器（带密码验证） -->
 <div class="phone-container">
     <div class="phone-title">团队抢答器</div>
-    <div class="team-select">
-        <button class="team-btn" onclick="setTeam(1)">第一组</button>
-        <button class="team-btn" onclick="setTeam(2)">第二组</button>
-        <button class="team-btn" onclick="setTeam(3)">第三组</button>
-        <button class="team-btn" onclick="setTeam(4)">第四组</button>
-        <button class="team-btn" onclick="setTeam(5)">第五组</button>
-        <button class="team-btn" onclick="setTeam(6)">第六组</button>
+
+    <!-- 密码验证区域 -->
+    <div class="password-section" id="passwordSection">
+        <input type="password" class="password-input" id="teamPassword" placeholder="请输入本队抢答密码">
+        <button class="login-btn" onclick="verifyPassword()">验证并进入</button>
+        <div class="error-tip" id="errorTip">密码错误，请重新输入</div>
     </div>
-    <button class="answer-btn" id="answerBtn" disabled onclick="sendAnswer()">我要抢答</button>
-    <div class="tip" id="tip">请先选择本组编号</div>
+
+    <!-- 抢答操作区域 -->
+    <div class="answer-section" id="answerSection">
+        <div class="team-info" id="teamInfo">研发一队</div>
+        <button class="answer-btn" id="answerBtn" disabled onclick="sendAnswer()">我要抢答</button>
+        <div class="status-tip" id="statusTip">等待主持人出题...</div>
+    </div>
 </div>
 
 <script>
-    // 30道竞赛题库（可直接替换你的题目）
-    const questions = [
-        {q: "企标要求连续热镀锌钢板双面镀锌量是多少？", a: "80g/m³"},
-        {q: "我国实用新型专利的保护期为多少年？", a: "10年"},
-        {q: "安全电压通常指不高于多少伏？", a: "36V"},
-        {q: "GB 26920-2024是什么标准？", a: "商用制冷器具能效限定值及能效等级国家标准"},
-        {q: "钣金件弯曲直边最小高度通常大于多少倍板厚？", a: ">2t"},
-        {q: "电器接地电阻应不大于多少Ω？", a: "0.5Ω"},
-        {q: "EC风机相比罩极电机最大优点是什么？", a: "效率高、转速稳定、噪音小"},
-        {q: "新品开发P1、P3分别是什么阶段？", a: "规划阶段、开发阶段"},
-        {q: "质量事故四不放过不包括哪项？", a: "事故赔偿没有到位不放过"},
-        {q: "商用冷柜内胆常用PCM板壁厚一般多少mm？", a: "0.3mm"},
-        {q: "CPK常见基准值是多少？", a: "1.33"},
-        {q: "标准公文行距是多少？", a: "28"},
-        {q: "塑料回收标志03代表什么材料？", a: "PVC"},
-        {q: "浸塑钢丝篮筐计价基准主要是什么？", a: "重量"},
-        {q: "SD-416三星标志冷冻室温度应低于多少℃？", a: "-18℃"},
-        {q: "GB/T21001.2中温度类型有几种？", a: "8种"},
-        {q: "IP代码第一个数字表示什么？", a: "防固体异物侵入能力"},
-        {q: "电器开关应能承受多少次正常通断？", a: "10000次"},
-        {q: "CKD出口方式指什么？", a: "全散"},
-        {q: "相变材料简称是什么？", a: "PCM"},
-        {q: "卧式商用玻璃门冷柜常用什么玻璃？", a: "钢化镀膜玻璃"},
-        {q: "机械温控器数字越大温度越怎样？", a: "越低"},
-        {q: "M包温度分类H1对应区间是？", a: "+1~+10℃"},
-        {q: "凝露面积大于5%属于哪类不合格？", a: "B类不合格项"},
-        {q: "单门饮料柜每层最少几个M包？", a: "5个"},
-        {q: "GB 4706.1核心目的是什么？", a: "保障家用和类似用途电器的安全使用"},
-        {q: "接地端子应采用什么材质？", a: "铜或铜合金"},
-        {q: "潘通色卡186C中186代表什么？", a: "具体色号编码"},
-        {q: "CMF在工业设计中指什么？", a: "颜色、材料、表面处理"},
-        {q: "设计思维步骤不包括什么？", a: "批量生产"}
+    // 1. 基础配置
+    // 团队密码配置（可根据实际情况修改）
+    const teamConfig = [
+        {id: 1, name: "研发一队", password: "dev001"},
+        {id: 2, name: "研发二队", password: "dev002"},
+        {id: 3, name: "研发三队", password: "dev003"},
+        {id: 4, name: "研发四队", password: "dev004"},
+        {id: 5, name: "研发五队", password: "dev005"},
+        {id: 6, name: "研发六队", password: "dev006"}
     ];
+    
+    let allQuestions = []; // 存储Excel中的所有题目
+    let currentTeam = null; // 当前登录的团队
+    let canAnswer = false; // 是否允许抢答
+    let answerLocked = false; // 抢答锁定（防止多队同时抢答）
 
-    let currentTeam = null;
-    let canAnswer = false;
+    // 2. Excel题库加载功能
+    function loadExcelQuestions() {
+        // 创建隐藏的文件输入框用于选择Excel文件
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.xlsx, .xls';
+        fileInput.style.display = 'none';
+        
+        // 选择文件后处理
+        fileInput.onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-    // 电脑端 - 随机出题
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    // 解析Excel文件
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // 读取第一个工作表（可根据实际修改工作表名称）
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // 转换为JSON格式（假设第一行为表头：题目,类型,答案）
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: ['question', 'type', 'answer'] });
+                    
+                    // 移除表头行，保留有效题目
+                    allQuestions = jsonData.slice(1).filter(item => 
+                        item.question && item.answer // 过滤空题目
+                    );
+
+                    // 提示加载结果
+                    if (allQuestions.length > 0) {
+                        alert(`题库加载成功！共加载 ${allQuestions.length} 道题目`);
+                        document.getElementById('questionType').innerText = `题目类型：未选择`;
+                        document.getElementById('question').innerText = `点击【随机出题】开始比赛`;
+                        document.getElementById('answer').innerText = `参考答案：待显示`;
+                    } else {
+                        alert(`未读取到有效题目，请检查Excel格式`);
+                    }
+                } catch (error) {
+                    alert(`题库加载失败：${error.message}`);
+                    console.error('Excel解析错误：', error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        // 触发文件选择
+        document.body.appendChild(fileInput);
+        fileInput.click();
+        document.body.removeChild(fileInput);
+    }
+
+    // 3. 电脑端功能
+    // 随机出题
     function nextQuestion() {
+        if (allQuestions.length === 0) {
+            alert('请先点击【加载题库】导入题目');
+            return;
+        }
+
+        // 重置抢答状态
         clearAnswer();
-        const randomIndex = Math.floor(Math.random() * questions.length);
-        const q = questions[randomIndex];
-        document.getElementById('question').innerText = q.q;
-        document.getElementById('answer').innerText = '参考答案：' + q.a;
+        answerLocked = false;
         canAnswer = true;
+
+        // 随机选择一道题
+        const randomIndex = Math.floor(Math.random() * allQuestions.length);
+        const selectedQ = allQuestions[randomIndex];
+
+        // 更新界面显示
+        document.getElementById('questionType').innerText = `题目类型：${selectedQ.type || '通用知识'}`;
+        document.getElementById('question').innerText = selectedQ.question;
+        document.getElementById('answer').innerText = `参考答案：${selectedQ.answer}`;
+
+        // 通知所有手机端可以开始抢答
+        broadcastToPhones({ type: 'readyToAnswer' });
     }
 
     // 清空抢答状态
@@ -273,42 +386,134 @@
         document.querySelectorAll('.team-item').forEach(item => {
             item.classList.remove('active');
         });
-    }
-
-    // 手机端 - 选择队伍
-    function setTeam(num) {
-        currentTeam = num;
-        document.getElementById('answerBtn').disabled = false;
-        document.getElementById('tip').innerText = '已选择：第' + num + '组，点击抢答';
-    }
-
-    // 手机端 - 发送抢答
-    function sendAnswer() {
-        if(!canAnswer || currentTeam == null) return;
         canAnswer = false;
-        
-        // 通知电脑端显示
-        window.parent.postMessage({
-            type: 'answer',
-            team: currentTeam
-        }, '*');
+        answerLocked = false;
 
-        document.getElementById('tip').innerText = '抢答成功！请等待主持人公布';
-        document.getElementById('answerBtn').disabled = true;
+        // 通知所有手机端重置状态
+        broadcastToPhones({ type: 'reset' });
     }
 
-    // 监听抢答消息
+    // 接收手机端抢答消息
+    function handlePhoneAnswer(teamId) {
+        if (answerLocked || !canAnswer) return;
+        
+        // 锁定抢答，防止多队同时抢中
+        answerLocked = true;
+        canAnswer = false;
+
+        // 查找团队信息
+        const team = teamConfig.find(t => t.id === teamId);
+        if (!team) return;
+
+        // 更新电脑端显示
+        document.getElementById('showTeam').innerText = `【${team.name}】抢答成功！`;
+        document.getElementById(`t${teamId}`).classList.add('active');
+
+        // 通知所有手机端抢答结果
+        broadcastToPhones({ 
+            type: 'answerResult', 
+            success: true, 
+            teamName: team.name 
+        });
+    }
+
+    // 4. 手机端功能
+    // 密码验证
+    function verifyPassword() {
+        const inputPwd = document.getElementById('teamPassword').value.trim();
+        const team = teamConfig.find(t => t.password === inputPwd);
+
+        if (team) {
+            // 验证成功，显示抢答区域
+            currentTeam = team;
+            document.getElementById('passwordSection').style.display = 'none';
+            document.getElementById('answerSection').style.display = 'block';
+            document.getElementById('teamInfo').innerText = team.name;
+        } else {
+            // 验证失败，显示错误提示
+            const errorTip = document.getElementById('errorTip');
+            errorTip.style.display = 'block';
+            setTimeout(() => {
+                errorTip.style.display = 'none';
+            }, 2000);
+        }
+    }
+
+    // 发送抢答请求
+    function sendAnswer() {
+        if (!currentTeam || !canAnswer || answerLocked) return;
+
+        // 向电脑端发送抢答消息
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'phoneAnswer',
+                teamId: currentTeam.id
+            }, '*');
+        } else {
+            // 本地测试用（实际使用时需通过局域网）
+            handlePhoneAnswer(currentTeam.id);
+        }
+
+        // 更新手机端状态
+        document.getElementById('answerBtn').disabled = true;
+        document.getElementById('statusTip').innerText = `抢答已提交，等待结果...`;
+    }
+
+    // 5. 跨设备通信功能
+    // 广播消息到所有手机端
+    function broadcastToPhones(message) {
+        // 实际使用时需通过WebSocket或本地存储实现多设备通信
+        // 此处为简化版，通过postMessage模拟
+        if (window.frames.length > 0) {
+            for (let i = 0; i < window.frames.length; i++) {
+                window.frames[i].postMessage(message, '*');
+            }
+        }
+    }
+
+    // 监听跨设备消息
     window.addEventListener('message', function(e) {
-        if(e.data.type === 'answer') {
-            const team = e.data.team;
-            document.getElementById('showTeam').innerText = `【第${team}组】抢答成功！`;
-            document.querySelectorAll('.team-item').forEach((item, index) => {
-                if(index+1 === team) {
-                    item.classList.add('active');
+        const message = e.data;
+        switch (message.type) {
+            // 接收电脑端的"准备抢答"指令
+            case 'readyToAnswer':
+                canAnswer = true;
+                document.getElementById('answerBtn').disabled = false;
+                document.getElementById('statusTip').innerText = '主持人已出题，可抢答！';
+                break;
+            
+            // 接收电脑端的"重置"指令
+            case 'reset':
+                canAnswer = false;
+                document.getElementById('answerBtn').disabled = true;
+                document.getElementById('statusTip').innerText = '等待主持人出题...';
+                break;
+            
+            // 接收电脑端的抢答结果
+            case 'answerResult':
+                if (message.success) {
+                    document.getElementById('statusTip').innerText = `【${message.teamName}】抢答成功！`;
+                } else {
+                    document.getElementById('statusTip').innerText = '抢答失败，已被其他队伍抢中';
                 }
-            });
+                break;
+            
+            // 接收手机端的抢答请求（电脑端监听）
+            case 'phoneAnswer':
+                handlePhoneAnswer(message.teamId);
+                break;
         }
     });
+
+    // 6. 初始化操作
+    window.onload = function() {
+        // 提示电脑端加载题库
+        if (window.innerWidth > 768) {
+            setTimeout(() => {
+                alert('欢迎使用研发技能竞赛抢答系统，请先点击【加载题库】导入Excel题目文件');
+            }, 1000);
+        }
+    };
 </script>
 </body>
 </html>
