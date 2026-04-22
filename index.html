@@ -327,6 +327,7 @@
         <button class="primary-btn" onclick="nextQuestion()">🎲 随机出题</button>
         <button class="secondary-btn" onclick="toggleAnswer()">🔎 显示答案</button>
         <button class="secondary-btn" onclick="clearAnswer()">🔄 清空抢答</button>
+        <button class="secondary-btn" id="enableSpeechBtn" onclick="enableSpeech()">🔊 启用语音</button>
     </div>
 
     <div class="buzz-banner" id="showTeam">✨ 等待抢答 ✨</div>
@@ -373,12 +374,33 @@
         let currentAnswer = '', showAnswerFlag = false;
         let currentWinnerId = null;
 
-        // 语音队列
+        // 语音相关
+        let speechEnabled = false;
         let speechQueue = [];
         let isSpeaking = false;
 
+        // 激活语音权限
+        window.enableSpeech = function() {
+            if (speechEnabled) {
+                speak('语音已启用');
+                return;
+            }
+            const utterance = new SpeechSynthesisUtterance('');
+            utterance.volume = 0;
+            utterance.onstart = () => {
+                speechEnabled = true;
+                const btn = document.getElementById('enableSpeechBtn');
+                if (btn) btn.innerText = '🔊 语音已启用';
+                setTimeout(() => speak('语音系统已激活'), 100);
+            };
+            utterance.onerror = () => {
+                alert('语音功能不可用，请检查浏览器设置或使用 Chrome/Edge。');
+            };
+            window.speechSynthesis.speak(utterance);
+        };
+
         function speak(text) {
-            if (!isHost) return;
+            if (!isHost || !speechEnabled) return;
             speechQueue.push(text);
             if (!isSpeaking) processSpeechQueue();
         }
@@ -509,7 +531,8 @@
             } catch(e) { if(isHost) document.getElementById('question').innerText = '题库加载失败，请检查文件'; }
         }
 
-        window.nextQuestion = function() {
+        // 重写nextQuestion，首次自动激活语音
+        const originalNext = function() {
             if(!isHost||!allQuestions.length) return;
             const q = allQuestions[Math.floor(Math.random()*allQuestions.length)];
             currentAnswer = q.answer;
@@ -527,6 +550,12 @@
             document.querySelectorAll('.team-tile').forEach(t=>t.classList.remove('active-tile'));
             broadcastState();
         };
+
+        window.nextQuestion = function() {
+            if (!speechEnabled) enableSpeech();   // 首次出题时激活语音
+            originalNext();
+        };
+
         window.toggleAnswer = function() {
             if(!isHost) return;
             showAnswerFlag = !showAnswerFlag;
