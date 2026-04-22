@@ -1,1 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研发技能竞赛 - 团队抢答系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
 
+        body {
+            background: #0f1941;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* 电脑端样式 */
+        .pc-container {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 0;
+            border-bottom: 2px solid #42b983;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #42b983;
+        }
+
+        .question-area {
+            margin: 30px auto;
+            width: 90%;
+            min-height: 200px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 30px;
+            border: 1px solid #42b983;
+        }
+
+        .question-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .answer-block {
+            font-size: 18px;
+            color: #ccc;
+            line-height: 1.8;
+        }
+
+        .control-group {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .control-btn {
+            padding: 12px 30px;
+            margin: 0 10px;
+            font-size: 18px;
+            background: #42b983;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .control-btn:hover {
+            background: #359469;
+        }
+
+        .team-result {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 28px;
+            color: #ffd700;
+            font-weight: bold;
+            min-height: 50px;
+        }
+
+        .team-grid {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .team-item {
+            width: 140px;
+            height: 70px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border: 1px solid #fff;
+        }
+
+        .team-item.active {
+            background: #ffd700;
+            color: #000;
+            border-color: #ffd700;
+        }
+
+        /* 手机端抢答器样式 */
+        .phone-container {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            background: #0f1941;
+            padding: 20px;
+        }
+
+        .phone-title {
+            text-align: center;
+            font-size: 24px;
+            color: #42b983;
+            margin-bottom: 40px;
+            padding-top: 30px;
+        }
+
+        .team-select {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 50px;
+        }
+
+        .team-btn {
+            height: 80px;
+            font-size: 20px;
+            background: #42b983;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .answer-btn {
+            width: 100%;
+            height: 120px;
+            font-size: 32px;
+            background: #e63946;
+            color: #fff;
+            border: none;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .tip {
+            text-align: center;
+            margin-top: 20px;
+            color: #ccc;
+            font-size: 14px;
+        }
+
+        /* 响应式判断 */
+        @media (max-width: 768px) {
+            .pc-container { display: none !important; }
+            .phone-container { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 电脑端 - 主持人界面 -->
+<div class="pc-container">
+    <div class="header">
+        <h1>商用电器事业部研发技能竞赛<br>团队知识抢答赛</h1>
+    </div>
+
+    <div class="question-area">
+        <div class="question-title" id="question">点击【随机出题】开始比赛</div>
+        <div class="answer-block" id="answer"></div>
+    </div>
+
+    <div class="control-group">
+        <button class="control-btn" onclick="nextQuestion()">随机出题</button>
+        <button class="control-btn" onclick="clearAnswer()">清空抢答</button>
+    </div>
+
+    <div class="team-result" id="showTeam">等待抢答...</div>
+
+    <div class="team-grid">
+        <div class="team-item" id="t1">第一组</div>
+        <div class="team-item" id="t2">第二组</div>
+        <div class="team-item" id="t3">第三组</div>
+        <div class="team-item" id="t4">第四组</div>
+        <div class="team-item" id="t5">第五组</div>
+        <div class="team-item" id="t6">第六组</div>
+    </div>
+</div>
+
+<!-- 手机端 - 抢答器 -->
+<div class="phone-container">
+    <div class="phone-title">团队抢答器</div>
+    <div class="team-select">
+        <button class="team-btn" onclick="setTeam(1)">第一组</button>
+        <button class="team-btn" onclick="setTeam(2)">第二组</button>
+        <button class="team-btn" onclick="setTeam(3)">第三组</button>
+        <button class="team-btn" onclick="setTeam(4)">第四组</button>
+        <button class="team-btn" onclick="setTeam(5)">第五组</button>
+        <button class="team-btn" onclick="setTeam(6)">第六组</button>
+    </div>
+    <button class="answer-btn" id="answerBtn" disabled onclick="sendAnswer()">我要抢答</button>
+    <div class="tip" id="tip">请先选择本组编号</div>
+</div>
+
+<script>
+    // 30道竞赛题库（可直接替换你的题目）
+    const questions = [
+        {q: "企标要求连续热镀锌钢板双面镀锌量是多少？", a: "80g/m³"},
+        {q: "我国实用新型专利的保护期为多少年？", a: "10年"},
+        {q: "安全电压通常指不高于多少伏？", a: "36V"},
+        {q: "GB 26920-2024是什么标准？", a: "商用制冷器具能效限定值及能效等级国家标准"},
+        {q: "钣金件弯曲直边最小高度通常大于多少倍板厚？", a: ">2t"},
+        {q: "电器接地电阻应不大于多少Ω？", a: "0.5Ω"},
+        {q: "EC风机相比罩极电机最大优点是什么？", a: "效率高、转速稳定、噪音小"},
+        {q: "新品开发P1、P3分别是什么阶段？", a: "规划阶段、开发阶段"},
+        {q: "质量事故四不放过不包括哪项？", a: "事故赔偿没有到位不放过"},
+        {q: "商用冷柜内胆常用PCM板壁厚一般多少mm？", a: "0.3mm"},
+        {q: "CPK常见基准值是多少？", a: "1.33"},
+        {q: "标准公文行距是多少？", a: "28"},
+        {q: "塑料回收标志03代表什么材料？", a: "PVC"},
+        {q: "浸塑钢丝篮筐计价基准主要是什么？", a: "重量"},
+        {q: "SD-416三星标志冷冻室温度应低于多少℃？", a: "-18℃"},
+        {q: "GB/T21001.2中温度类型有几种？", a: "8种"},
+        {q: "IP代码第一个数字表示什么？", a: "防固体异物侵入能力"},
+        {q: "电器开关应能承受多少次正常通断？", a: "10000次"},
+        {q: "CKD出口方式指什么？", a: "全散"},
+        {q: "相变材料简称是什么？", a: "PCM"},
+        {q: "卧式商用玻璃门冷柜常用什么玻璃？", a: "钢化镀膜玻璃"},
+        {q: "机械温控器数字越大温度越怎样？", a: "越低"},
+        {q: "M包温度分类H1对应区间是？", a: "+1~+10℃"},
+        {q: "凝露面积大于5%属于哪类不合格？", a: "B类不合格项"},
+        {q: "单门饮料柜每层最少几个M包？", a: "5个"},
+        {q: "GB 4706.1核心目的是什么？", a: "保障家用和类似用途电器的安全使用"},
+        {q: "接地端子应采用什么材质？", a: "铜或铜合金"},
+        {q: "潘通色卡186C中186代表什么？", a: "具体色号编码"},
+        {q: "CMF在工业设计中指什么？", a: "颜色、材料、表面处理"},
+        {q: "设计思维步骤不包括什么？", a: "批量生产"}
+    ];
+
+    let currentTeam = null;
+    let canAnswer = false;
+
+    // 电脑端 - 随机出题
+    function nextQuestion() {
+        clearAnswer();
+        const randomIndex = Math.floor(Math.random() * questions.length);
+        const q = questions[randomIndex];
+        document.getElementById('question').innerText = q.q;
+        document.getElementById('answer').innerText = '参考答案：' + q.a;
+        canAnswer = true;
+    }
+
+    // 清空抢答状态
+    function clearAnswer() {
+        document.getElementById('showTeam').innerText = '等待抢答...';
+        document.querySelectorAll('.team-item').forEach(item => {
+            item.classList.remove('active');
+        });
+    }
+
+    // 手机端 - 选择队伍
+    function setTeam(num) {
+        currentTeam = num;
+        document.getElementById('answerBtn').disabled = false;
+        document.getElementById('tip').innerText = '已选择：第' + num + '组，点击抢答';
+    }
+
+    // 手机端 - 发送抢答
+    function sendAnswer() {
+        if(!canAnswer || currentTeam == null) return;
+        canAnswer = false;
+        
+        // 通知电脑端显示
+        window.parent.postMessage({
+            type: 'answer',
+            team: currentTeam
+        }, '*');
+
+        document.getElementById('tip').innerText = '抢答成功！请等待主持人公布';
+        document.getElementById('answerBtn').disabled = true;
+    }
+
+    // 监听抢答消息
+    window.addEventListener('message', function(e) {
+        if(e.data.type === 'answer') {
+            const team = e.data.team;
+            document.getElementById('showTeam').innerText = `【第${team}组】抢答成功！`;
+            document.querySelectorAll('.team-item').forEach((item, index) => {
+                if(index+1 === team) {
+                    item.classList.add('active');
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>
