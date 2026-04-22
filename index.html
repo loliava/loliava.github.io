@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>研发技能竞赛 · 抢答系统 (竞赛现场版)</title>
+    <title>研发技能竞赛 · 抢答系统 (语音播报版)</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
@@ -36,7 +36,6 @@
             padding: 20px;
         }
 
-        /* 主容器 — 最大化利用空间 */
         .pc-container {
             width: 1440px;
             max-width: 100%;
@@ -49,7 +48,6 @@
             box-shadow: 0 30px 50px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,215,0,0.1) inset;
         }
 
-        /* 头部：喜庆+专业 */
         .header {
             display: flex;
             justify-content: space-between;
@@ -92,7 +90,6 @@
             margin-left: 10px;
         }
 
-        /* 全屏按钮 */
         .icon-btn {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,215,0,0.3);
@@ -110,7 +107,6 @@
         }
         .icon-btn:hover { background: rgba(255,215,0,0.15); transform: scale(0.96); }
 
-        /* 题目卡片 —— 放大居中 */
         .question-card {
             background: rgba(10, 18, 30, 0.6);
             backdrop-filter: blur(20px);
@@ -174,7 +170,6 @@
             color: var(--gold-light);
         }
 
-        /* 控制栏 —— 突出且顺手 */
         .action-bar {
             display: flex;
             flex-wrap: wrap;
@@ -215,7 +210,6 @@
         }
         .secondary-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.3); }
 
-        /* 抢答结果横幅 */
         .buzz-banner {
             text-align: center;
             font-size: 48px;
@@ -226,7 +220,6 @@
             min-height: 80px;
         }
 
-        /* 队伍分数网格 */
         .teams-container {
             display: flex;
             justify-content: space-between;
@@ -285,7 +278,6 @@
         }
         .score-btn-small:active { transform: scale(0.9); }
 
-        /* 手机端优化 —— 同样放大字体 */
         .phone-container { display: none; }
         @media (max-width: 768px) {
             body { padding: 0; }
@@ -297,7 +289,6 @@
                 padding: 20px 16px;
                 background: radial-gradient(circle at 30% 20%, #1e2a3a, #0b1018);
             }
-            /* 手机端沿用原风格但加大字体 */
             .phone-title { font-size: 48px; }
             .input-field { height: 70px; font-size: 22px; }
             .action-btn { height: 70px; font-size: 28px; }
@@ -309,7 +300,6 @@
 </head>
 <body>
 
-<!-- 电脑端 - 主持人竞赛界面 -->
 <div class="pc-container">
     <div class="header">
         <div class="title-section">
@@ -324,7 +314,6 @@
         </div>
     </div>
 
-    <!-- 题目卡片 - 放大居中 -->
     <div class="question-card">
         <div class="q-meta">
             <span class="q-type" id="questionType">加载题库中</span>
@@ -334,20 +323,16 @@
         <div class="answer-area" id="answerText">参考答案：********</div>
     </div>
 
-    <!-- 主控制栏 -->
     <div class="action-bar">
         <button class="primary-btn" onclick="nextQuestion()">🎲 随机出题</button>
         <button class="secondary-btn" onclick="toggleAnswer()">🔎 显示答案</button>
         <button class="secondary-btn" onclick="clearAnswer()">🔄 清空抢答</button>
     </div>
 
-    <!-- 抢答结果 -->
     <div class="buzz-banner" id="showTeam">✨ 等待抢答 ✨</div>
 
-    <!-- 6队记分牌 -->
     <div class="teams-container" id="teamGrid"></div>
 
-    <!-- 全局分数控制 -->
     <div style="display: flex; justify-content: center; gap: 25px; margin-top: 20px;">
         <button class="secondary-btn" onclick="addScore(2)">➕ 加 2 分</button>
         <button class="secondary-btn" onclick="addScore(-2)">➖ 扣 2 分</button>
@@ -356,7 +341,6 @@
     <div style="text-align: right; margin-top: 12px; opacity: 0.6; font-size: 14px;">手机端输入房间号加入抢答</div>
 </div>
 
-<!-- 手机端 - 抢答器 (简约大气) -->
 <div class="phone-container">
     <div class="phone-title">团队抢答器</div>
     <div class="join-section" id="joinSection">
@@ -389,6 +373,31 @@
         let currentAnswer = '', showAnswerFlag = false;
         let currentWinnerId = null;
 
+        // 语音队列
+        let speechQueue = [];
+        let isSpeaking = false;
+
+        function speak(text) {
+            if (!isHost) return;
+            speechQueue.push(text);
+            if (!isSpeaking) processSpeechQueue();
+        }
+
+        function processSpeechQueue() {
+            if (speechQueue.length === 0) {
+                isSpeaking = false;
+                return;
+            }
+            isSpeaking = true;
+            const utterance = new SpeechSynthesisUtterance(speechQueue.shift());
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
+            utterance.onend = () => processSpeechQueue();
+            utterance.onerror = () => processSpeechQueue();
+            window.speechSynthesis.speak(utterance);
+        }
+
         function initPeer() {
             peer = new Peer(undefined, { host: '0.peerjs.com', port: 443, secure: true, debug: 0 });
             peer.on('open', id => { if(isHost){ hostPeerId = id; document.getElementById('roomIdDisplay').innerText = id; } });
@@ -407,6 +416,7 @@
                     answerLocked = true; canAnswer = false; currentWinnerId = team.id;
                     document.getElementById('showTeam').innerHTML = `🏆 ${team.name} 抢答成功！`;
                     highlightTeam(team.id);
+                    speak(`${team.name}，抢答成功`);
                     connections.forEach(c=>c.send({type:'buzzResult', success:true, teamName:team.name}));
                     broadcastState();
                 }
@@ -447,6 +457,8 @@
             const team = teamConfig.find(t=>t.id===teamId); if(!team) return;
             team.score = Math.max(0, team.score + delta);
             document.getElementById(`score-${teamId}`).innerText = team.score;
+            const actionText = delta > 0 ? `加${delta}分` : `减${-delta}分`;
+            speak(`${team.name}，${actionText}`);
         };
 
         function updateScoreUI(teamId) { const el = document.getElementById(`score-${teamId}`); if(el) el.innerText = teamConfig.find(t=>t.id===teamId).score; }
@@ -461,16 +473,16 @@
             const team = teamConfig.find(t=>t.id===currentWinnerId);
             team.score = Math.max(0, team.score + delta);
             updateScoreUI(currentWinnerId);
+            const actionText = delta > 0 ? `加${delta}分` : `减${-delta}分`;
+            speak(`${team.name}，${actionText}`);
         };
         window.resetAllScores = function() { if(!isHost) return; teamConfig.forEach(t=>{ t.score = 10; updateScoreUI(t.id); }); };
 
-        // 全屏功能
         window.toggleFullscreen = function() {
             if(!document.fullscreenElement) document.documentElement.requestFullscreen();
             else document.exitFullscreen();
         };
 
-        // 题库加载
         async function loadQuestions() {
             try {
                 const res = await fetch('./研发知识题库.xlsx'); if(!res.ok) throw new Error('文件不存在');
