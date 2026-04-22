@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>研发技能竞赛 · 抢答系统 (Apple 设计版)</title>
+    <!-- SheetJS 解析 Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- PeerJS 客户端 -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        /* ===== Apple 风格全局变量 ===== */
+        :root {
+            --bg-primary: #0b0e14;
+            --glass-bg: rgba(20, 25, 35, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-gold: #ffd60a;
+            --accent-green: #30d158;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --card-radius: 24px;
+            --btn-radius: 16px;
+            --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.5);
+            --transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 磨砂玻璃背景层 */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.08), transparent 60%),
+                        linear-gradient(135deg, #1a1f2c 0%, #0c101a 100%);
+            z-index: -2;
+        }
+
+        /* 装饰性光晕 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 70% 80%, rgba(48, 209, 88, 0.03), transparent 50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* ===== 通用磨砂卡片 ===== */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ===== 电脑端容器 ===== */
+        .pc-container {
+            display: block;
+            width: 100vw;
+            min-height: 100vh;
+            padding: 28px 32px;
+        }
+
+        /* 头部 */
+        .header {
+            text-align: center;
+            padding: 12px 0 20px;
+            border-bottom: 1px solid rgba(255, 215, 10, 0.2);
+        }
+        .header h1 {
+            font-size: 38px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff8e7, #ffd60a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 10px rgba(255, 215, 10, 0.2);
+        }
+
+        .room-info {
+            text-align: center;
+            margin: 20px 0 10px;
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .room-info strong {
+            color: var(--accent-gold);
+            font-weight: 700;
+            background: rgba(255, 215, 10, 0.1);
+            padding: 6px 16px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+            margin-left: 10px;
+        }
+
+        /* 题目区域 */
+        .question-area {
+            margin: 28px 0;
+            padding: 32px 36px;
+        }
+        .question-type {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(48, 209, 88, 0.15);
+            color: var(--accent-green);
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+            border: 0.5px solid rgba(48, 209, 88, 0.3);
+        }
+        .question-title {
+            font-size: 32px;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 24px;
+        }
+        .options-area {
+            margin-top: 16px;
+            padding-left: 12px;
+        }
+        .option-item {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 14px;
+            border-left: 3px solid transparent;
+            transition: var(--transition);
+        }
+        .option-item strong {
+            color: var(--accent-gold);
+            margin-right: 12px;
+            font-weight: 600;
+        }
+        .answer-block {
+            margin-top: 30px;
+            padding: 16px 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 18px;
+            font-size: 20px;
+            border: 0.5px solid rgba(255, 255, 255, 0.05);
+        }
+        #answerText {
+            font-weight: 500;
+        }
+
+        /* 按钮组 */
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .control-btn {
+            padding: 14px 32px;
+            font-size: 18px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 0.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--btn-radius);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: var(--transition);
+            letter-spacing: 0.3px;
+        }
+        .control-btn:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* 抢答结果横幅 */
+        .team-result {
+            text-align: center;
+            margin: 30px 0 20px;
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            min-height: 60px;
+            text-shadow: 0 0 20px rgba(255, 215, 10, 0.5);
+        }
+
+        /* 队伍网格 */
+        .team-grid {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .team-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 170px;
+        }
+        .team-score {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            margin-bottom: 10px;
+            background: rgba(0,0,0,0.3);
+            padding: 6px 20px;
+            border-radius: 40px;
+            backdrop-filter: blur(10px);
+            border: 0.5px solid rgba(255,215,10,0.2);
+        }
+        .team-item {
+            width: 100%;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 500;
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+        /* 抢答成功高亮 + 呼吸动画 */
+        .team-item.active {
+            background: rgba(255, 215, 10, 0.18);
+            border: 2px solid var(--accent-gold);
+            color: var(--accent-gold);
+            box-shadow: 0 0 30px rgba(255, 215, 10, 0.5), 0 10px 20px rgba(0,0,0,0.3);
+            transform: scale(1.02);
+            animation: breathe 1.8s infinite ease-in-out;
+        }
+        @keyframes breathe {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 10, 0.4), 0 10px 20px rgba(0,0,0,0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 215, 10, 0.8), 0 12px 24px rgba(0,0,0,0.4); }
+        }
+
+        /* ===== 手机端样式 (苹果风格) ===== */
+        .phone-container {
+            display: none;
+            width: 100vw;
+            min-height: 100vh;
+            padding: 24px 20px;
+            background: transparent;
+        }
+        .phone-title {
+            text-align: center;
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            background: linear-gradient(135deg, #fff, #ffd60a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin: 20px 0 40px;
+        }
+        .join-section, .answer-section {
+            margin: 20px auto;
+            width: 100%;
+        }
+        .input-field {
+            width: 100%;
+            height: 58px;
+            font-size: 18px;
+            padding: 0 20px;
+            background: rgba(20, 25, 35, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px;
+            color: white;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(255,215,10,0.2);
+        }
+        .action-btn {
+            width: 100%;
+            height: 58px;
+            font-size: 22px;
+            font-weight: 600;
+            background: var(--accent-green);
+            color: black;
+            border: none;
+            border-radius: 18px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 20px rgba(48, 209, 88, 0.2);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .action-btn:active {
+            transform: scale(0.97);
+            background: #28a745;
+            box-shadow: 0 5px 12px rgba(48, 209, 88, 0.3);
+        }
+        .error-tip {
+            text-align: center;
+            color: #ff453a;
+            margin-top: 16px;
+            font-weight: 500;
+            display: none;
+        }
+        .team-info {
+            text-align: center;
+            font-size: 40px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            margin: 30px 0 50px;
+            text-shadow: 0 0 30px rgba(255,215,10,0.3);
+        }
+        .answer-btn {
+            width: 100%;
+            height: 160px;
+            font-size: 42px;
+            font-weight: 700;
+            background: linear-gradient(145deg, #ff3b30, #d70015);
+            color: white;
+            border: none;
+            border-radius: 36px;
+            box-shadow: 0 20px 40px rgba(255, 59, 48, 0.4);
+            cursor: pointer;
+            transition: var(--transition);
+            letter-spacing: 4px;
+        }
+        .answer-btn:active {
+            transform: scale(0.96);
+            box-shadow: 0 10px 20px rgba(255, 59, 48, 0.5);
+        }
+        .answer-btn:disabled {
+            opacity: 0.5;
+            filter: grayscale(0.5);
+            transform: none;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .status-tip {
+            text-align: center;
+            margin-top: 32px;
+            color: var(--text-secondary);
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .pc-container { display: none !important; }
+            .phone-container { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 电脑端 - 主持人界面 -->
+<div class="pc-container">
+    <div class="header">
+        <h1>商用电器事业部研发技能竞赛<br>团队知识抢答赛</h1>
+    </div>
+    <div class="room-info">
+        🏠 房间号：<strong id="roomIdDisplay">正在生成...</strong>
+        <span style="margin-left: 20px; font-size: 16px;">手机端输入此号加入</span>
+    </div>
+
+    <div class="question-area glass-card">
+        <div id="questionType" class="question-type">题目类型：加载中...</div>
+        <div class="question-title" id="question">正在加载题库...</div>
+        <div class="options-area" id="optionsArea"></div>
+        <div class="answer-block">
+            <div id="answerText">参考答案：等待出题</div>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <button class="control-btn" onclick="nextQuestion()">🎲 随机出题</button>
+        <button class="control-btn" onclick="toggleAnswer()">🔎 显示答案</button>
+        <button class="control-btn" onclick="clearAnswer()">🔄 清空抢答</button>
+    </div>
+
+    <div class="team-result" id="showTeam">等待抢答...</div>
+
+    <div class="team-grid" id="teamGrid"></div>
+
+    <div class="control-group" style="margin-top: 20px;">
+        <button class="control-btn" onclick="addScore(2)">➕ 加2分</button>
+        <button class="control-btn" onclick="addScore(-2)">➖ 减2分</button>
+        <button class="control-btn" onclick="resetAllScores()">🔄 清空比分</button>
+    </div>
+</div>
+
+<!-- 手机端 - 抢答器 -->
+<div class="phone-container">
+    <div class="phone-title">团队抢答器</div>
+    <div class="join-section" id="joinSection">
+        <input type="text" class="input-field" id="roomIdInput" placeholder="请输入主持人房间号" inputmode="text">
+        <input type="password" class="input-field" id="teamPassword" placeholder="请输入本队抢答密码" inputmode="text">
+        <button class="action-btn" onclick="joinRoom()">加入房间</button>
+        <div class="error-tip" id="errorTip">房间号或密码错误</div>
+    </div>
+    <div class="answer-section" id="answerSection">
+        <div class="team-info" id="teamInfo">研发一队</div>
+        <button class="answer-btn" id="answerBtn" disabled onclick="sendAnswer()">我要抢答</button>
+        <div class="status-tip" id="statusTip">等待主持人出题...</div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        "use strict";
+
+        // ==================== 全局配置 ====================
+        const teamConfig = [
+            {id: 1, name: "研发一队", password: "dev001", score: 10},
+            {id: 2, name: "研发二队", password: "dev002", score: 10},
+            {id: 3, name: "研发三队", password: "dev003", score: 10},
+            {id: 4, name: "研发四队", password: "dev004", score: 10},
+            {id: 5, name: "研发五队", password: "dev005", score: 10},
+            {id: 6, name: "研发六队", password: "dev006", score: 10}
+        ];
+
+        let allQuestions = [];
+        let currentTeam = null;
+        let isHost = window.innerWidth > 768;
+        let canAnswer = false;
+        let answerLocked = false;
+        let peer = null;
+        let connections = [];
+        let hostPeerId = null;
+        let currentAnswer = '';
+        let showAnswerFlag = false;
+        let currentWinnerId = null;
+
+        // ==================== 初始化 PeerJS ====================
+        function initPeer() {
+            peer = new Peer(undefined, {
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                debug: 0
+            });
+
+            peer.on('open', (id) => {
+                if (isHost) {
+                    hostPeerId = id;
+                    document.getElementById('roomIdDisplay').innerText = id;
+                }
+            });
+
+            peer.on('connection', (conn) => {
+                console.log('📱 新手机连接');
+                connections.push(conn);
+                conn.on('data', (data) => handleIncomingMessage(data, conn));
+                conn.on('close', () => connections = connections.filter(c => c.peer !== conn.peer));
+            });
+
+            peer.on('error', (err) => {
+                console.warn('PeerJS 错误:', err);
+                if (isHost) alert('通信连接出错，请刷新页面');
+            });
+        }
+
+        function handleIncomingMessage(data, conn) {
+            if (isHost) {
+                if (data.type === 'buzz' && canAnswer && !answerLocked) {
+                    const teamId = data.teamId;
+                    const team = teamConfig.find(t => t.id === teamId);
+                    if (!team) return;
+                    answerLocked = true;
+                    canAnswer = false;
+                    currentWinnerId = teamId;
+                    document.getElementById('showTeam').innerText = `【${team.name}】抢答成功！`;
+                    highlightTeam(teamId);
+                    connections.forEach(c => c.send({ type: 'buzzResult', success: true, teamName: team.name }));
+                    broadcastState();
+                }
+            } else {
+                switch (data.type) {
+                    case 'state':
+                        canAnswer = data.canAnswer;
+                        answerLocked = data.answerLocked;
+                        updatePhoneUI();
+                        break;
+                    case 'buzzResult':
+                        if (data.success) {
+                            document.getElementById('statusTip').innerText = `【${data.teamName}】抢答成功！`;
+                            document.getElementById('answerBtn').disabled = true;
+                        }
+                        break;
+                }
+            }
+        }
+
+        function broadcastState() {
+            if (!isHost) return;
+            connections.forEach(c => c.send({ type: 'state', canAnswer, answerLocked }));
+        }
+
+        function updatePhoneUI() {
+            if (isHost) return;
+            const btn = document.getElementById('answerBtn');
+            const tip = document.getElementById('statusTip');
+            if (canAnswer && !answerLocked) {
+                btn.disabled = false;
+                tip.innerText = '主持人已出题，可抢答！';
+            } else if (answerLocked) {
+                btn.disabled = true;
+                tip.innerText = '抢答已结束';
+            } else {
+                btn.disabled = true;
+                tip.innerText = '等待主持人出题...';
+            }
+        }
+
+        // ==================== 队伍卡片渲染 ====================
+        function renderTeamCards() {
+            const grid = document.getElementById('teamGrid');
+            grid.innerHTML = '';
+            teamConfig.forEach(team => {
+                const card = document.createElement('div');
+                card.className = 'team-card';
+                card.innerHTML = `
+                    <div class="team-score" id="score-${team.id}">${team.score}</div>
+                    <div class="team-item" id="t${team.id}">${team.name}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function updateScoreUI(teamId) {
+            const scoreElem = document.getElementById(`score-${teamId}`);
+            if (scoreElem) {
+                const team = teamConfig.find(t => t.id === teamId);
+                scoreElem.innerText = team.score;
+            }
+        }
+
+        function highlightTeam(teamId) {
+            document.querySelectorAll('.team-item').forEach(item => item.classList.remove('active'));
+            const activeItem = document.getElementById(`t${teamId}`);
+            if (activeItem) activeItem.classList.add('active');
+        }
+
+        window.addScore = function(delta) {
+            if (!isHost) return;
+            if (currentWinnerId === null) {
+                alert('尚无抢答成功的队伍');
+                return;
+            }
+            const team = teamConfig.find(t => t.id === currentWinnerId);
+            if (!team) return;
+            team.score = Math.max(0, team.score + delta);
+            updateScoreUI(currentWinnerId);
+        };
+
+        window.resetAllScores = function() {
+            if (!isHost) return;
+            teamConfig.forEach(team => { team.score = 10; });
+            teamConfig.forEach(team => updateScoreUI(team.id));
+        };
+
+        // ==================== 题库加载 (Excel) ====================
+        async function loadQuestionsFromFile() {
+            try {
+                const response = await fetch('./研发知识题库.xlsx');
+                if (!response.ok) throw new Error('题库文件不存在');
+                const data = await response.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const sheetData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                allQuestions = [];
+                for (let i = 1; i < sheetData.length; i++) {
+                    const row = sheetData[i];
+                    if (!row || row.length === 0) continue;
+                    const question = row[0]?.toString().trim();
+                    const answer = row[1]?.toString().trim().toUpperCase();
+                    if (!question || !answer) continue;
+                    
+                    const options = [];
+                    for (let j = 2; j <= 9; j++) {
+                        if (row[j] && row[j].toString().trim() !== '') {
+                            options.push(row[j].toString().trim());
+                        }
+                    }
+                    
+                    let type = '未知';
+                    if (options.length === 2) type = '判断';
+                    else if (options.length >= 3) {
+                        if (answer.length === 1 && /[A-Z]/.test(answer)) type = '单选';
+                        else if (answer.length > 1) type = '多选';
+                        else type = '单选';
+                    } else if (options.length === 0) type = '问答';
+                    
+                    allQuestions.push({ question, answer, options, type });
+                }
+                
+                if (isHost) {
+                    document.getElementById('questionType').innerText = `题库已加载 ${allQuestions.length} 题`;
+                    document.getElementById('question').innerText = '题库就绪，点击【随机出题】开始';
+                    document.getElementById('answerText').innerText = '参考答案：等待出题';
+                    document.getElementById('optionsArea').innerHTML = '';
+                }
+            } catch (err) {
+                console.error('题库加载失败:', err);
+                if (isHost) document.getElementById('question').innerText = '题库加载失败，请确保 研发知识题库.xlsx 与 index.html 在同一目录';
+            }
+        }
+
+        // ==================== 主持人功能 ====================
+        window.nextQuestion = function() {
+            if (!isHost) return;
+            if (allQuestions.length === 0) { alert('题库尚未加载完成'); return; }
+            
+            const q = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+            currentAnswer = q.answer;
+            
+            document.getElementById('questionType').innerText = `题目类型：${q.type}`;
+            document.getElementById('question').innerText = q.question;
+            
+            const optionsDiv = document.getElementById('optionsArea');
+            if (q.options && q.options.length > 0) {
+                const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                let html = '';
+                q.options.forEach((opt, idx) => {
+                    html += `<div class="option-item"><strong>${letters[idx]}</strong> ${opt}</div>`;
+                });
+                optionsDiv.innerHTML = html;
+            } else {
+                optionsDiv.innerHTML = '<div class="option-item">(本题无选项，请口头作答)</div>';
+            }
+            
+            showAnswerFlag = false;
+            document.getElementById('answerText').innerText = '参考答案：********';
+            
+            canAnswer = true;
+            answerLocked = false;
+            currentWinnerId = null;
+            document.getElementById('showTeam').innerText = '等待抢答...';
+            document.querySelectorAll('.team-item').forEach(item => item.classList.remove('active'));
+            broadcastState();
+        };
+
+        window.toggleAnswer = function() {
+            if (!isHost) return;
+            showAnswerFlag = !showAnswerFlag;
+            const answerElem = document.getElementById('answerText');
+            answerElem.innerText = showAnswerFlag ? `参考答案：${currentAnswer}` : '参考答案：********';
+        };
+
+        window.clearAnswer = function() {
+            if (!isHost) return;
+            canAnswer = false;
+            answerLocked = false;
+            currentWinnerId = null;
+            document.getElementById('showTeam').innerText = '等待抢答...';
+            document.querySelectorAll('.team-item').forEach(item => item.classList.remove('active'));
+            broadcastState();
+        };
+
+        // ==================== 手机端功能 ====================
+        window.joinRoom = function() {
+            const roomId = document.getElementById('roomIdInput').value.trim();
+            const pwd = document.getElementById('teamPassword').value.trim();
+            const team = teamConfig.find(t => t.password === pwd);
+            if (!roomId || !team) {
+                document.getElementById('errorTip').style.display = 'block';
+                setTimeout(() => document.getElementById('errorTip').style.display = 'none', 2000);
+                return;
+            }
+            currentTeam = team;
+            const conn = peer.connect(roomId, { reliable: true });
+            conn.on('open', () => {
+                document.getElementById('joinSection').style.display = 'none';
+                document.getElementById('answerSection').style.display = 'block';
+                document.getElementById('teamInfo').innerText = team.name;
+                conn.on('data', (data) => handleIncomingMessage(data, conn));
+            });
+            conn.on('error', () => alert('连接失败，请检查房间号'));
+        };
+
+        window.sendAnswer = function() {
+            if (!currentTeam || !canAnswer || answerLocked) return;
+            const conns = Object.values(peer.connections).flat();
+            if (conns.length > 0) {
+                conns[0].send({ type: 'buzz', teamId: currentTeam.id });
+                document.getElementById('answerBtn').disabled = true;
+                document.getElementById('statusTip').innerText = '抢答已提交，等待结果...';
+            }
+        };
+
+        // ==================== 初始化 ====================
+        window.onload = async function() {
+            initPeer();
+            await loadQuestionsFromFile();
+            if (isHost) {
+                renderTeamCards();
+                setTimeout(() => {
+                    if (!hostPeerId) alert('正在连接服务器，请稍候...');
+                }, 2000);
+            }
+        };
+    })();
+</script>
+</body>
+</html>
