@@ -110,29 +110,21 @@
             font-weight: 700;
         }
 
-        /* 进度区域输入框 */
-        .progress-input-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin: 8px 0;
+        /* 排名前三队名特效（仅用于右侧排名列表） */
+        .rank-name-1 {
+            color: #ffd700 !important;
+            text-shadow: 0 0 10px #ffaa00, 0 0 20px #ffd700;
+            font-weight: 800;
         }
-        .progress-input {
-            width: 70px;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--gold);
-            color: white;
-            font-size: 18px;
+        .rank-name-2 {
+            color: #c0c0c0 !important;
+            text-shadow: 0 0 8px #a0a0a0, 0 0 15px #c0c0c0;
             font-weight: 700;
-            text-align: center;
-            padding: 6px;
-            border-radius: 12px;
-            outline: none;
         }
-        .progress-input:focus {
-            border-color: var(--green-accent);
-            box-shadow: 0 0 10px rgba(46,204,113,0.3);
+        .rank-name-3 {
+            color: #cd7f32 !important;
+            text-shadow: 0 0 8px #b87333, 0 0 15px #cd7f32;
+            font-weight: 700;
         }
 
         .progress-header {
@@ -158,6 +150,31 @@
         .progress-title:hover {
             background: rgba(255,215,0,0.2);
             transform: scale(0.98);
+        }
+
+        .progress-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .progress-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gold-light);
+        }
+        .total-input {
+            width: 80px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--gold);
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            padding: 6px;
+            border-radius: 12px;
+            outline: none;
         }
 
         .header {
@@ -271,36 +288,37 @@
             gap: 25px;
         }
 
-        /* 对错按钮 */
+        /* 对错按钮——磨砂玻璃风格 */
         .judge-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            font-size: 36px;
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            font-size: 40px;
             font-weight: bold;
-            border: 3px solid;
+            border: 1px solid rgba(255,215,0,0.3);
             cursor: pointer;
             transition: all 0.15s;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.3);
+            background: rgba(255,255,255,0.08);
+            color: white;
         }
         .btn-correct {
-            background: #2ecc71;
-            border-color: #27ae60;
-            color: white;
+            border-color: #2ecc71;
+            text-shadow: 0 0 10px #2ecc71;
         }
         .btn-wrong {
-            background: #e74c3c;
-            border-color: #c0392b;
-            color: white;
+            border-color: #e74c3c;
+            text-shadow: 0 0 10px #e74c3c;
         }
         .judge-btn:active {
             transform: translateY(4px);
-            box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+            box-shadow: 0 4px 0 rgba(0,0,0,0.3), 0 3px 10px rgba(0,0,0,0.3);
         }
-        /* 对错特效动画 */
+
         .correct-effect {
             animation: correctPulse 0.5s ease;
         }
@@ -309,7 +327,7 @@
         }
         @keyframes correctPulse {
             0%,100% { background: transparent; }
-            50% { background: rgba(46,204,113,0.7); box-shadow: 0 0 50px #2ecc71; }
+            50% { background: rgba(46,204,113,0.4); box-shadow: 0 0 50px #2ecc71; }
         }
         @keyframes wrongShake {
             0%,100% { transform: translateX(0); }
@@ -317,7 +335,7 @@
             75% { transform: translateX(10px); }
         }
 
-        /* 队伍记分牌 - 悬浮特效 + 排名体积变化 */
+        /* 队伍记分牌（无队名特效） */
         .teams-container {
             display: flex;
             justify-content: space-between;
@@ -355,30 +373,18 @@
             z-index: 1;
         }
 
-        /* 排名前三队名特效 */
-        .rank-name-1 {
-            color: #ffd700;
-            text-shadow: 0 0 15px #ffaa00, 0 0 30px #ffd700;
-            font-weight: 800;
-            letter-spacing: 2px;
-        }
-        .rank-name-2 {
-            color: #c0c0c0;
-            text-shadow: 0 0 10px #a0a0a0, 0 0 20px #c0c0c0;
-            font-weight: 700;
-        }
-        .rank-name-3 {
-            color: #cd7f32;
-            text-shadow: 0 0 10px #b87333, 0 0 20px #cd7f32;
-            font-weight: 700;
-        }
-
         .team-score {
             font-size: 44px;
             font-weight: 900;
             color: var(--gold);
             line-height: 1.2;
             text-shadow: 0 2px 10px rgba(255,215,0,0.3);
+        }
+
+        .team-name {
+            font-size: 26px;
+            font-weight: 600;
+            margin: 8px 0 5px;
         }
 
         .score-ops {
@@ -502,12 +508,12 @@
             <ul class="rank-list" id="rankList"></ul>
             <div class="progress-header">
                 <span class="rank-title" style="margin-bottom:0;">📊 答题进度</span>
-                <span class="progress-title" onclick="resetProgressInputs()" title="点击重置进度">↻ 重置</span>
+                <span class="progress-title" onclick="resetProgress()" title="点击重置进度">↻ 重置</span>
             </div>
-            <div class="progress-input-group">
-                <input type="number" id="answeredInput" class="progress-input" min="0" value="0" step="1">
-                <span style="font-size: 24px; color: var(--gold);">/</span>
-                <input type="number" id="totalInput" class="progress-input" min="1" value="30" step="1">
+            <div class="progress-display">
+                <span class="progress-number" id="answeredDisplay">0</span>
+                <span style="font-size: 28px; color: var(--gold);">/</span>
+                <input type="number" id="totalInput" class="total-input" min="1" value="30" step="1">
             </div>
         </div>
     </div>
@@ -536,71 +542,58 @@
         let speechQueue = [];
         let isSpeaking = false;
 
-        // DOM 元素
-        const answeredInput = document.getElementById('answeredInput');
         const totalInput = document.getElementById('totalInput');
-        const answerTextEl = document.getElementById('answerText');
+        const answeredDisplay = document.getElementById('answeredDisplay');
 
-        // 初始化进度输入框
-        answeredInput.addEventListener('change', function() {
-            answeredCount = parseInt(this.value) || 0;
-            if (answeredCount > totalQuestions) answeredCount = totalQuestions;
-            this.value = answeredCount;
-        });
         totalInput.addEventListener('change', function() {
             totalQuestions = parseInt(this.value) || 1;
-            if (answeredCount > totalQuestions) {
-                answeredCount = totalQuestions;
-                answeredInput.value = totalQuestions;
-            }
+            if (answeredCount > totalQuestions) answeredCount = totalQuestions;
+            answeredDisplay.innerText = answeredCount;
             this.value = totalQuestions;
         });
 
-        // 重置进度输入框
-        window.resetProgressInputs = function() {
+        window.resetProgress = function() {
             answeredCount = 0;
-            answeredInput.value = 0;
+            answeredDisplay.innerText = '0';
         };
 
-        // 音效系统 (Web Audio)
-        function playSound(type) {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                const now = audioCtx.currentTime;
-                if (type === 'correct') {
-                    oscillator.frequency.value = 880;
-                    gainNode.gain.setValueAtTime(0.3, now);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                } else {
-                    oscillator.frequency.value = 440;
-                    gainNode.gain.setValueAtTime(0.3, now);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                }
-                oscillator.start();
-                oscillator.stop(now + 0.2);
-                audioCtx.onstatechange = null;
-            } catch(e) {}
+        // 语音合成队列
+        function speak(text, isFemale = true) {
+            if (!speechEnabled) return;
+            speechQueue.push({ text, isFemale });
+            if (!isSpeaking) processSpeechQueue();
         }
 
-        // 对错按钮特效
+        function processSpeechQueue() {
+            if (!speechEnabled || speechQueue.length === 0) {
+                isSpeaking = false;
+                return;
+            }
+            isSpeaking = true;
+            const item = speechQueue.shift();
+            const utterance = new SpeechSynthesisUtterance(item.text);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 1.0;
+            utterance.pitch = item.isFemale ? 1.8 : 1.0;  // 女声尖锐
+            utterance.onend = () => processSpeechQueue();
+            utterance.onerror = () => processSpeechQueue();
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 对错按钮音效与特效
         window.judgeAnswer = function(isCorrect) {
             const card = document.querySelector('.question-card');
             if (isCorrect) {
-                playSound('correct');
+                speak('恭喜你答对了', true);
                 card.classList.add('correct-effect');
                 setTimeout(() => card.classList.remove('correct-effect'), 500);
             } else {
-                playSound('wrong');
+                speak('打错了再接再厉', true);
                 card.classList.add('wrong-effect');
                 setTimeout(() => card.classList.remove('wrong-effect'), 400);
             }
         };
 
-        // 语音系统
         window.toggleSpeech = function() {
             speechEnabled = !speechEnabled;
             const btn = document.getElementById('speechToggleBtn');
@@ -609,7 +602,6 @@
                 const utterance = new SpeechSynthesisUtterance('');
                 utterance.volume = 0;
                 window.speechSynthesis.speak(utterance);
-                // 不进行语音播报
             } else {
                 btn.innerText = '🔇 开启语音';
                 speechQueue = [];
@@ -620,28 +612,10 @@
             }
         };
 
-        function speak(text) {
-            if (!speechEnabled) return;
-            speechQueue.push(text);
-            if (!isSpeaking) processSpeechQueue();
+        function speakNormal(text) {
+            speak(text, false);
         }
 
-        function processSpeechQueue() {
-            if (!speechEnabled || speechQueue.length === 0) {
-                isSpeaking = false;
-                return;
-            }
-            isSpeaking = true;
-            const utterance = new SpeechSynthesisUtterance(speechQueue.shift());
-            utterance.lang = 'zh-CN';
-            utterance.rate = 0.9;
-            utterance.pitch = 1.1;
-            utterance.onend = () => processSpeechQueue();
-            utterance.onerror = () => processSpeechQueue();
-            window.speechSynthesis.speak(utterance);
-        }
-
-        // 渲染队伍 (带排名特效和队名特效)
         function renderTeams() {
             const grid = document.getElementById('teamGrid'); 
             grid.innerHTML = '';
@@ -650,7 +624,7 @@
                 tile.className = 'team-tile'; 
                 tile.id = `tile-${t.id}`;
                 tile.innerHTML = `<div class="team-score" id="score-${t.id}">${t.score}</div>
-                    <div class="team-name" id="team-name-${t.id}">${t.name}</div>
+                    <div class="team-name">${t.name}</div>
                     <div class="score-ops">
                         <button class="score-btn-small" onclick="adjustTeamScore(${t.id}, 1)">+</button>
                         <button class="score-btn-small" onclick="adjustTeamScore(${t.id}, -1)">-</button>
@@ -662,28 +636,16 @@
 
         function applyRankingEffects() {
             const sorted = [...teamConfig].sort((a, b) => b.score - a.score);
-            // 移除所有排名类与队名特效
             teamConfig.forEach(team => {
                 const tile = document.getElementById(`tile-${team.id}`);
                 if (!tile) return;
                 tile.classList.remove('rank-1', 'rank-2', 'rank-3');
-                const nameSpan = document.getElementById(`team-name-${team.id}`);
-                nameSpan.classList.remove('rank-name-1', 'rank-name-2', 'rank-name-3');
             });
-            // 添加前三特效
             sorted.forEach((team, idx) => {
                 const tile = document.getElementById(`tile-${team.id}`);
-                const nameSpan = document.getElementById(`team-name-${team.id}`);
-                if (idx === 0) {
-                    tile.classList.add('rank-1');
-                    nameSpan.classList.add('rank-name-1');
-                } else if (idx === 1) {
-                    tile.classList.add('rank-2');
-                    nameSpan.classList.add('rank-name-2');
-                } else if (idx === 2) {
-                    tile.classList.add('rank-3');
-                    nameSpan.classList.add('rank-name-3');
-                }
+                if (idx === 0) tile.classList.add('rank-1');
+                else if (idx === 1) tile.classList.add('rank-2');
+                else if (idx === 2) tile.classList.add('rank-3');
             });
         }
 
@@ -694,7 +656,17 @@
             sorted.forEach((team, index) => {
                 const li = document.createElement('li');
                 li.className = 'rank-item';
-                li.innerHTML = `<span>${index+1}. ${team.name}</span><span class="rank-score">${team.score}</span>`;
+                const nameSpan = document.createElement('span');
+                nameSpan.innerText = `${index+1}. ${team.name}`;
+                // 排名前三队名特效只加在排名列表
+                if (index === 0) nameSpan.classList.add('rank-name-1');
+                else if (index === 1) nameSpan.classList.add('rank-name-2');
+                else if (index === 2) nameSpan.classList.add('rank-name-3');
+                const scoreSpan = document.createElement('span');
+                scoreSpan.className = 'rank-score';
+                scoreSpan.innerText = team.score;
+                li.appendChild(nameSpan);
+                li.appendChild(scoreSpan);
                 rankList.appendChild(li);
             });
             applyRankingEffects();
@@ -706,13 +678,12 @@
             team.score = Math.max(0, team.score + delta);
             document.getElementById(`score-${teamId}`).innerText = team.score;
             const actionText = delta > 0 ? `加${delta}分` : `减${-delta}分`;
-            speak(`${team.name}，${actionText}`);
+            speakNormal(`${team.name}，${actionText}`);
             updateRanking();
         };
 
         window.resetAllScores = function() { 
             teamConfig.forEach(t => { t.score = 10; document.getElementById(`score-${t.id}`).innerText = 10; }); 
-            // 不再语音播报
             updateRanking();
         };
 
@@ -786,25 +757,26 @@
             } else optDiv.innerHTML = '<div class="option-item">(本题无选项，口头作答)</div>';
             
             showAnswerFlag = false;
-            answerTextEl.innerText = '参考答案：********';
+            document.getElementById('answerText').innerText = '参考答案：********';
             
             answeredCount = Math.min(answeredCount + 1, totalQuestions);
-            answeredInput.value = answeredCount;
+            answeredDisplay.innerText = answeredCount;
             
             if (speechEnabled) {
-                speak(`${q.type}题`);
-                speak(q.question);
+                speakNormal(`${q.type}题`);
+                speakNormal(q.question);
                 const optSpeech = buildOptionsSpeech(currentOptions);
-                if (optSpeech) speak(optSpeech);
+                if (optSpeech) speakNormal(optSpeech);
             }
         };
 
         window.toggleAnswer = function() {
             showAnswerFlag = !showAnswerFlag;
+            const answerTextEl = document.getElementById('answerText');
             if (showAnswerFlag) {
                 answerTextEl.innerText = `参考答案：${currentAnswer}`;
                 if (speechEnabled && currentAnswer) {
-                    speak(`正确答案是 ${currentAnswer.split('').join(' ')}`);
+                    speakNormal(`正确答案是 ${currentAnswer.split('').join(' ')}`);
                 }
             } else {
                 answerTextEl.innerText = '参考答案：********';
@@ -815,7 +787,7 @@
             document.getElementById('questionType').innerText = `📚 题库 ${allQuestions.length} 题`;
             document.getElementById('question').innerText = '点击「随机出题」开始';
             document.getElementById('optionsArea').innerHTML = '';
-            answerTextEl.innerText = '参考答案：********';
+            document.getElementById('answerText').innerText = '参考答案：********';
             currentAnswer = '';
             currentOptions = [];
             showAnswerFlag = false;
@@ -825,7 +797,7 @@
             renderTeams();
             await loadQuestions();
             updateRanking();
-            answeredInput.value = 0;
+            answeredDisplay.innerText = '0';
             totalInput.value = 30;
         };
     })();
