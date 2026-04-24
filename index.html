@@ -293,8 +293,8 @@
             <div class="answer-area">
                 <span id="answerText">参考答案：********</span>
                 <div style="display: flex; gap: 15px;">
-                    <div class="judge-btn btn-correct" onclick="judgeAnswer(true)">✔️</div>
-                    <div class="judge-btn btn-wrong" onclick="judgeAnswer(false)">❌</div>
+                    <div class="judge-btn btn-correct" id="correctBtn">✔️</div>
+                    <div class="judge-btn btn-wrong" id="wrongBtn">❌</div>
                 </div>
             </div>
         </div>
@@ -303,19 +303,19 @@
     </div>
 
     <div class="right-actions">
-        <button class="primary-btn" onclick="nextQuestion()">🎲 随机出题</button>
-        <button class="secondary-btn" onclick="toggleAnswer()">🔎 显示答案</button>
-        <button class="secondary-btn" onclick="clearQuestion()">🔄 清空题目</button>
-        <button class="secondary-btn" id="speechToggleBtn" onclick="toggleSpeech()">🔇 开启语音</button>
-        <button class="secondary-btn" onclick="resetAllScores()">🔄 重置比分</button>
-        <div class="fullscreen-btn" onclick="toggleFullscreen()" title="全屏模式">⛶ 全屏</div>
+        <button class="primary-btn" id="randomBtn">🎲 随机出题</button>
+        <button class="secondary-btn" id="toggleAnswerBtn">🔎 显示答案</button>
+        <button class="secondary-btn" id="clearBtn">🔄 清空题目</button>
+        <button class="secondary-btn" id="speechToggleBtn">🔇 开启语音</button>
+        <button class="secondary-btn" id="resetScoresBtn">🔄 重置比分</button>
+        <div class="fullscreen-btn" id="fullscreenBtn" title="全屏模式">⛶ 全屏</div>
         
         <div class="info-panel">
             <div class="rank-title">🏆 实时排名</div>
             <ul class="rank-list" id="rankList"></ul>
             <div class="progress-header">
                 <span class="rank-title" style="margin-bottom:0;">📊 答题进度</span>
-                <span class="progress-title" onclick="resetProgress()" title="点击重置进度">↻ 重置</span>
+                <span class="progress-title" id="resetProgressBtn" title="点击重置进度">↻ 重置</span>
             </div>
             <div class="progress-display">
                 <span class="progress-number" id="answeredDisplay">0</span>
@@ -326,10 +326,10 @@
             <div class="countdown-section">
                 <div class="rank-title" style="margin-bottom: 8px;">⏱️ 倒计时</div>
                 <div class="countdown-display" id="countdownDisplay">--</div>
-                <div class="countdown-btns">
-                    <button class="countdown-btn" onclick="startCountdown(10)">10秒</button>
-                    <button class="countdown-btn" onclick="startCountdown(20)">20秒</button>
-                    <button class="countdown-btn" onclick="startCountdown(60)">60秒</button>
+                <div class="countdown-btns" id="countdownButtons">
+                    <button class="countdown-btn" data-seconds="10">10秒</button>
+                    <button class="countdown-btn" data-seconds="20">20秒</button>
+                    <button class="countdown-btn" data-seconds="60">60秒</button>
                 </div>
             </div>
         </div>
@@ -363,6 +363,7 @@
         let countdownRemaining = 0;
         let beepAudioCtx = null;
 
+        // 音效
         function playBeep() {
             try {
                 if (!beepAudioCtx) beepAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -378,7 +379,7 @@
             } catch (e) {}
         }
 
-        // 暴露到全局
+        // 倒计时功能（已暴露到 window，同时由事件监听触发）
         window.startCountdown = function(seconds) {
             if (countdownInterval) clearInterval(countdownInterval);
             countdownRemaining = seconds;
@@ -487,34 +488,6 @@
             window.speechSynthesis.speak(u);
         }
 
-        window.judgeAnswer = function(isCorrect) {
-            const card = document.querySelector('.question-card');
-            if (isCorrect) {
-                speak('恭喜你答对了', true, 2.2, 1.2);
-                card.classList.add('correct-effect');
-                setTimeout(()=>card.classList.remove('correct-effect'),500);
-                createFireworks();
-            } else {
-                speak('打错了再接再厉', true, 1.8, 1.0);
-                card.classList.add('wrong-effect');
-                setTimeout(()=>card.classList.remove('wrong-effect'),400);
-            }
-        };
-
-        window.toggleSpeech = function() {
-            speechEnabled = !speechEnabled;
-            const btn = document.getElementById('speechToggleBtn');
-            if (speechEnabled) {
-                btn.innerText = '🔊 关闭语音';
-                window.speechSynthesis.getVoices();
-                const u = new SpeechSynthesisUtterance(''); u.volume=0; window.speechSynthesis.speak(u);
-            } else {
-                btn.innerText = '🔇 开启语音';
-                speechQueue = [];
-                if (isSpeaking) { window.speechSynthesis.cancel(); isSpeaking=false; }
-            }
-        };
-
         function speakNormal(text) { speak(text, false, 1.0, 0.9); }
 
         function renderTeams() {
@@ -524,12 +497,29 @@
                 tile.innerHTML = `<div class="team-score" id="score-${t.id}">${t.score}</div>
                     <div class="team-name">${t.name}</div>
                     <div class="score-ops">
-                        <button class="score-btn-small" onclick="adjustTeamScore(${t.id},1)">+</button>
-                        <button class="score-btn-small" onclick="adjustTeamScore(${t.id},-1)">-</button>
+                        <button class="score-btn-small" data-action="add" data-team="${t.id}">+</button>
+                        <button class="score-btn-small" data-action="subtract" data-team="${t.id}">-</button>
                     </div>`;
                 grid.appendChild(tile);
             });
+            // 绑定队伍加减分事件
+            document.querySelectorAll('.score-btn-small').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const teamId = parseInt(this.dataset.team);
+                    const delta = this.dataset.action === 'add' ? 1 : -1;
+                    adjustTeamScore(teamId, delta);
+                });
+            });
             applyRankingEffects();
+        }
+
+        function adjustTeamScore(teamId, delta) {
+            const team = teamConfig.find(t=>t.id===teamId);
+            if(!team) return;
+            team.score = Math.max(0, team.score + delta);
+            document.getElementById(`score-${teamId}`).innerText = team.score;
+            speakNormal(`${team.name}，${delta>0?'加':'减'}${Math.abs(delta)}分`);
+            updateRanking();
         }
 
         function applyRankingEffects() {
@@ -551,15 +541,6 @@
             });
             applyRankingEffects();
         }
-
-        window.adjustTeamScore = function(teamId, delta) {
-            const team = teamConfig.find(t=>t.id===teamId);
-            if(!team) return;
-            team.score = Math.max(0, team.score + delta);
-            document.getElementById(`score-${teamId}`).innerText = team.score;
-            speakNormal(`${team.name}，${delta>0?'加':'减'}${Math.abs(delta)}分`);
-            updateRanking();
-        };
 
         window.resetAllScores = function() {
             teamConfig.forEach(t=>{ t.score=10; document.getElementById(`score-${t.id}`).innerText=10; });
@@ -608,7 +589,7 @@
             return opts.map((o,i)=>`选项${letters[i]}、${o}`).join('；');
         }
 
-        window.nextQuestion = function() {
+        function nextQuestion() {
             if(!allQuestions.length) return alert('请先加载题库');
             const q = allQuestions[Math.floor(Math.random()*allQuestions.length)];
             currentAnswer = q.answer; currentOptions = q.options||[]; currentType = q.type;
@@ -630,29 +611,80 @@
                 const optSpeech = buildOptionsSpeech(currentOptions);
                 if(optSpeech) speakNormal(optSpeech);
             }
-        };
+        }
 
-        window.toggleAnswer = function() {
+        function toggleAnswer() {
             showAnswerFlag = !showAnswerFlag;
             const ans = document.getElementById('answerText');
             if(showAnswerFlag) {
                 ans.innerText = `参考答案：${currentAnswer}`;
                 if(speechEnabled && currentAnswer) speakNormal(`正确答案是 ${currentAnswer.split('').join(' ')}`);
             } else ans.innerText = '参考答案：********';
-        };
+        }
 
-        window.clearQuestion = function() {
+        function clearQuestion() {
             document.getElementById('questionType').innerText = `📚 题库 ${allQuestions.length} 题`;
             document.getElementById('question').innerText = '点击「随机出题」开始';
             document.getElementById('optionsArea').innerHTML = '';
             document.getElementById('answerText').innerText = '参考答案：********';
             currentAnswer = ''; currentOptions = []; showAnswerFlag = false;
-        };
+        }
 
-        window.resetProgress = function() {
+        function resetProgress() {
             answeredCount = 0;
             answeredDisplay.innerText = '0';
-        };
+        }
+
+        // 绑定所有按钮事件
+        function bindEvents() {
+            document.getElementById('randomBtn').addEventListener('click', nextQuestion);
+            document.getElementById('toggleAnswerBtn').addEventListener('click', toggleAnswer);
+            document.getElementById('clearBtn').addEventListener('click', clearQuestion);
+            document.getElementById('resetScoresBtn').addEventListener('click', window.resetAllScores);
+            document.getElementById('fullscreenBtn').addEventListener('click', window.toggleFullscreen);
+            document.getElementById('resetProgressBtn').addEventListener('click', resetProgress);
+            document.getElementById('speechToggleBtn').addEventListener('click', function() {
+                speechEnabled = !speechEnabled;
+                this.innerText = speechEnabled ? '🔊 关闭语音' : '🔇 开启语音';
+                if (speechEnabled) {
+                    window.speechSynthesis.getVoices();
+                    const u = new SpeechSynthesisUtterance(''); u.volume=0; window.speechSynthesis.speak(u);
+                } else {
+                    speechQueue = [];
+                    if (isSpeaking) { window.speechSynthesis.cancel(); isSpeaking=false; }
+                }
+            });
+
+            // 对错按钮
+            document.getElementById('correctBtn').addEventListener('click', function() {
+                const card = document.querySelector('.question-card');
+                speak('恭喜你答对了', true, 2.2, 1.2);
+                card.classList.add('correct-effect');
+                setTimeout(()=>card.classList.remove('correct-effect'),500);
+                createFireworks();
+            });
+            document.getElementById('wrongBtn').addEventListener('click', function() {
+                const card = document.querySelector('.question-card');
+                speak('打错了再接再厉', true, 1.8, 1.0);
+                card.classList.add('wrong-effect');
+                setTimeout(()=>card.classList.remove('wrong-effect'),400);
+            });
+
+            // 倒计时按钮
+            document.querySelectorAll('#countdownButtons .countdown-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const seconds = parseInt(this.dataset.seconds);
+                    window.startCountdown(seconds);
+                });
+            });
+
+            // 总题目数修改监听
+            totalInput.addEventListener('change', function() {
+                totalQuestions = parseInt(this.value) || 30;
+                if (answeredCount > totalQuestions) answeredCount = totalQuestions;
+                answeredDisplay.innerText = answeredCount;
+            });
+        }
 
         window.onload = async function() {
             renderTeams();
@@ -660,6 +692,7 @@
             updateRanking();
             answeredDisplay.innerText = '0';
             totalInput.value = 30;
+            bindEvents();
         };
     })();
 </script>
