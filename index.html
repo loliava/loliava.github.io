@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>研发技能竞赛 · 出题记分系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0f1c;
+            --glass-bg: rgba(18, 25, 40, 0.7);
+            --gold: #ffd700;
+            --gold-light: #ffeb99;
+            --green-accent: #2ecc71;
+            --card-radius: 28px;
+            --btn-radius: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 30%, #1e2a3a, #0b1018);
+            min-height: 100vh;
+            color: white;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 烟花画布 */
+        #fireworksCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .main-container {
+            width: 1440px;
+            max-width: 100%;
+            display: flex;
+            gap: 24px;
+            align-items: stretch;
+            z-index: 1;
+        }
+
+        .left-content {
+            flex: 1;
+            min-width: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 48px;
+            box-shadow: 0 30px 50px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,215,0,0.1) inset;
+            padding: 24px 30px 30px;
+        }
+
+        .right-actions {
+            width: 280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 48px;
+            box-shadow: 0 30px 50px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,215,0,0.1) inset;
+            padding: 30px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .right-actions button {
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .info-panel {
+            margin-top: 10px;
+            padding: 16px 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+            border: 1px solid rgba(255,215,0,0.2);
+        }
+
+        .rank-title {
+            font-size: 16px;
+            color: var(--gold);
+            margin-bottom: 8px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .rank-list {
+            list-style: none;
+            margin-bottom: 16px;
+        }
+
+        .rank-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            padding: 4px 0;
+            color: #eee;
+        }
+
+        .rank-score {
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        .rank-name-1 { color: #ffd700 !important; text-shadow: 0 0 10px #ffaa00, 0 0 20px #ffd700; font-weight: 800; }
+        .rank-name-2 { color: #c0c0c0 !important; text-shadow: 0 0 8px #a0a0a0, 0 0 15px #c0c0c0; font-weight: 700; }
+        .rank-name-3 { color: #cd7f32 !important; text-shadow: 0 0 8px #b87333, 0 0 15px #cd7f32; font-weight: 700; }
+
+        .progress-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .progress-title {
+            font-size: 16px;
+            color: var(--gold);
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: rgba(255,215,0,0.05);
+            border: 1px solid rgba(255,215,0,0.2);
+        }
+
+        .progress-title:hover { background: rgba(255,215,0,0.2); transform: scale(0.98); }
+
+        .progress-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .progress-number { font-size: 28px; font-weight: 700; color: var(--gold-light); }
+        .total-input {
+            width: 80px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--gold);
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            padding: 6px;
+            border-radius: 12px;
+            outline: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.4);
+        }
+        .header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff, #ffd966);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 4px 20px rgba(255,215,0,0.3);
+            letter-spacing: 4px;
+        }
+        .header p { font-size: 16px; color: #ffd966; margin-top: 8px; font-weight: 500; letter-spacing: 2px; }
+
+        .question-card {
+            background: rgba(10, 18, 30, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,215,0,0.3);
+            border-radius: 36px;
+            padding: 30px 40px;
+            margin: 20px 0 30px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.5), 0 0 30px rgba(255,215,0,0.1) inset;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            min-height: 450px;
+            max-height: 580px;
+        }
+
+        .q-meta { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; flex-shrink: 0; }
+        .q-type { background: var(--green-accent); color: #000; font-weight: 700; padding: 8px 24px; border-radius: 50px; font-size: 18px; letter-spacing: 1px; }
+
+        .q-text-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; margin: 5px 0; min-height: 0; }
+        .q-text { font-weight: 700; line-height: 1.4; color: #fff; text-shadow: 0 4px 15px rgba(0,0,0,0.5); word-break: break-word; width: 100%; transition: font-size 0.1s ease; max-height: 100%; overflow-y: auto; }
+
+        .options-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px 30px; margin: 10px 0; flex-shrink: 0; }
+        .option-item { font-size: 28px; background: rgba(255,255,255,0.03); padding: 12px 28px; border-radius: 60px; border: 1px solid rgba(255,215,0,0.2); backdrop-filter: blur(8px); }
+        .option-item strong { color: var(--gold); margin-right: 15px; font-size: 32px; }
+
+        .answer-area {
+            margin-top: 15px; padding-top: 15px; border-top: 2px dashed rgba(255,215,0,0.4);
+            font-size: 36px; font-weight: 600; color: var(--gold-light); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; gap: 25px;
+        }
+
+        .judge-btn {
+            width: 70px; height: 70px; border-radius: 20px; font-size: 40px; font-weight: bold;
+            border: 1px solid rgba(255,215,0,0.3); cursor: pointer; transition: all 0.15s;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px); box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.3);
+            background: rgba(255,255,255,0.08); color: white;
+        }
+        .btn-correct { border-color: #2ecc71; text-shadow: 0 0 10px #2ecc71; }
+        .btn-wrong { border-color: #e74c3c; text-shadow: 0 0 10px #e74c3c; }
+        .judge-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0,0,0,0.3), 0 3px 10px rgba(0,0,0,0.3); }
+
+        .correct-effect { animation: correctPulse 0.5s ease; }
+        .wrong-effect { animation: wrongShake 0.4s ease; }
+        @keyframes correctPulse { 0%,100% { background: transparent; } 50% { background: rgba(46,204,113,0.4); box-shadow: 0 0 50px #2ecc71; } }
+        @keyframes wrongShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+
+        .teams-container { display: flex; justify-content: space-between; gap: 12px; margin: 15px 0 10px; }
+        .team-tile {
+            flex: 1; background: rgba(0,0,0,0.35); backdrop-filter: blur(15px);
+            border-radius: 30px; padding: 18px 5px 14px; border: 1px solid rgba(255,215,0,0.2);
+            text-align: center; transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4), 0 0 0 rgba(255,215,0,0); transform: scale(1);
+        }
+        .team-tile.rank-1 { transform: scale(1.12); box-shadow: 0 20px 35px rgba(0,0,0,0.6), 0 0 30px rgba(255,215,0,0.4); border-color: rgba(255,215,0,0.8); z-index: 3; }
+        .team-tile.rank-2 { transform: scale(1.08); box-shadow: 0 16px 28px rgba(0,0,0,0.55), 0 0 20px rgba(255,215,0,0.25); border-color: rgba(255,215,0,0.6); z-index: 2; }
+        .team-tile.rank-3 { transform: scale(1.04); box-shadow: 0 12px 22px rgba(0,0,0,0.5), 0 0 15px rgba(255,215,0,0.15); border-color: rgba(255,215,0,0.4); z-index: 1; }
+
+        .team-score { font-size: 44px; font-weight: 900; color: var(--gold); line-height: 1.2; text-shadow: 0 2px 10px rgba(255,215,0,0.3); }
+        .team-name { font-size: 26px; font-weight: 600; margin: 8px 0 5px; }
+        .score-ops { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+        .score-btn-small { background: rgba(255,255,255,0.1); border: 1px solid var(--gold); color: var(--gold); font-weight: bold; font-size: 22px; width: 48px; height: 48px; border-radius: 30px; cursor: pointer; backdrop-filter: blur(5px); transition: 0.1s; }
+        .score-btn-small:active { transform: scale(0.9); }
+
+        .primary-btn { background: linear-gradient(145deg, #f1c40f, #f39c12); border: none; color: #1e1e1e; font-weight: 800; font-size: 20px; padding: 16px 12px; border-radius: var(--btn-radius); box-shadow: 0 6px 0 #b86d0e, 0 5px 15px rgba(241,196,15,0.3); cursor: pointer; transition: all 0.1s; border: 1px solid #ffe28c; letter-spacing: 2px; }
+        .primary-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b86d0e, 0 5px 10px rgba(241,196,15,0.3); }
+        .secondary-btn { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255,215,0,0.4); color: var(--gold); font-weight: 700; font-size: 18px; padding: 14px 12px; border-radius: var(--btn-radius); cursor: pointer; transition: 0.1s; box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
+        .secondary-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.3); }
+        .fullscreen-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,215,0,0.3); color: var(--gold); font-size: 24px; width: 100%; height: 56px; border-radius: var(--btn-radius); display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s; font-weight: 700; }
+        .fullscreen-btn:hover { background: rgba(255,215,0,0.15); transform: scale(0.98); }
+
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; }
+            .right-actions { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+            .right-actions button { width: auto; min-width: 120px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="fireworksCanvas"></canvas>
+
+<div class="main-container">
+    <div class="left-content">
+        <div class="header">
+            <h1>⚡ 匠心铸技 · 智创未来 ⚡</h1>
+            <p>商用电器事业部 · 研发中心首届技能挑战赛</p>
+        </div>
+
+        <div class="question-card">
+            <div class="q-meta">
+                <span class="q-type" id="questionType">加载题库中</span>
+            </div>
+            <div class="q-text-wrapper">
+                <div class="q-text" id="question">点击「加载题库」开始</div>
+            </div>
+            <div class="options-grid" id="optionsArea"></div>
+            <div class="answer-area">
+                <span id="answerText">参考答案：********</span>
+                <div style="display: flex; gap: 15px;">
+                    <div class="judge-btn btn-correct" onclick="judgeAnswer(true)">✔️</div>
+                    <div class="judge-btn btn-wrong" onclick="judgeAnswer(false)">❌</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="teams-container" id="teamGrid"></div>
+    </div>
+
+    <div class="right-actions">
+        <button class="primary-btn" onclick="nextQuestion()">🎲 随机出题</button>
+        <button class="secondary-btn" onclick="toggleAnswer()">🔎 显示答案</button>
+        <button class="secondary-btn" onclick="clearQuestion()">🔄 清空题目</button>
+        <button class="secondary-btn" id="speechToggleBtn" onclick="toggleSpeech()">🔇 开启语音</button>
+        <button class="secondary-btn" onclick="resetAllScores()">🔄 重置比分</button>
+        <div class="fullscreen-btn" onclick="toggleFullscreen()" title="全屏模式">⛶ 全屏</div>
+        
+        <div class="info-panel">
+            <div class="rank-title">🏆 实时排名</div>
+            <ul class="rank-list" id="rankList"></ul>
+            <div class="progress-header">
+                <span class="rank-title" style="margin-bottom:0;">📊 答题进度</span>
+                <span class="progress-title" onclick="resetProgress()" title="点击重置进度">↻ 重置</span>
+            </div>
+            <div class="progress-display">
+                <span class="progress-number" id="answeredDisplay">0</span>
+                <span style="font-size: 28px; color: var(--gold);">/</span>
+                <input type="number" id="totalInput" class="total-input" min="1" value="30" step="1">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        const teamConfig = [
+            {id:1, name:"研发一队", score:10},
+            {id:2, name:"研发二队", score:10},
+            {id:3, name:"研发三队", score:10},
+            {id:4, name:"风清扬", score:10},
+            {id:5, name:"绝不躺平", score:10},
+            {id:6, name:"答什么都队", score:10}
+        ];
+
+        let allQuestions = [];
+        let currentAnswer = '';
+        let currentOptions = [];
+        let currentType = '';
+        let showAnswerFlag = false;
+        let answeredCount = 0;
+        let totalQuestions = 30;
+
+        let speechEnabled = false;
+        let speechQueue = [];
+        let isSpeaking = false;
+
+        const totalInput = document.getElementById('totalInput');
+        const answeredDisplay = document.getElementById('answeredDisplay');
+        const canvas = document.getElementById('fireworksCanvas');
+        const ctx = canvas.getContext('2d');
+        let fireworks = [];
+        let animationId = null;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.velocity = {
+                    x: (Math.random() - 0.5) * 12,
+                    y: (Math.random() - 0.5) * 12
+                };
+                this.alpha = 1;
+                this.decay = Math.random() * 0.02 + 0.01;
+                this.radius = Math.random() * 3 + 2;
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+            update() {
+                this.velocity.y += 0.08;
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.alpha -= this.decay;
+            }
+        }
+
+        class Firework {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.particles = [];
+                const colors = ['#ffd700','#ff6600','#ff3366','#33ff57','#3399ff','#ff33cc','#ffff33'];
+                for (let i = 0; i < 100; i++) {
+                    this.particles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
+                }
+            }
+            update() {
+                this.particles.forEach(p => p.update());
+                this.particles = this.particles.filter(p => p.alpha > 0);
+            }
+            draw() {
+                this.particles.forEach(p => p.draw());
+            }
+        }
+
+        function createFireworks() {
+            for (let i = 0; i < 3; i++) {
+                fireworks.push(new Firework(
+                    Math.random() * canvas.width * 0.8 + canvas.width * 0.1,
+                    Math.random() * canvas.height * 0.5 + canvas.height * 0.1
+                ));
+            }
+            if (!animationId) animate();
+        }
+
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            fireworks.forEach(f => { f.update(); f.draw(); });
+            fireworks = fireworks.filter(f => f.particles.length > 0);
+            if (fireworks.length === 0) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+
+        // 语音系统
+        function speak(text, isFemale = false, pitch = 1.0, rate = 1.0) {
+            if (!speechEnabled) return;
+            speechQueue.push({ text, isFemale, pitch, rate });
+            if (!isSpeaking) processSpeechQueue();
+        }
+
+        function processSpeechQueue() {
+            if (!speechEnabled || speechQueue.length === 0) {
+                isSpeaking = false;
+                return;
+            }
+            isSpeaking = true;
+            const item = speechQueue.shift();
+            const utterance = new SpeechSynthesisUtterance(item.text);
+            utterance.lang = 'zh-CN';
+            utterance.rate = item.rate;
+            utterance.pitch = item.pitch;
+            // 尝试选择中文女声
+            const voices = window.speechSynthesis.getVoices();
+            const zhFemale = voices.find(v => v.lang.includes('zh') && v.name.includes('Female'));
+            if (zhFemale) utterance.voice = zhFemale;
+            utterance.onend = () => processSpeechQueue();
+            utterance.onerror = () => processSpeechQueue();
+            window.speechSynthesis.speak(utterance);
+        }
+
+        window.judgeAnswer = function(isCorrect) {
+            const card = document.querySelector('.question-card');
+            if (isCorrect) {
+                // 激动尖锐女声
+                speak('恭喜你答对了', true, 2.2, 1.2);
+                card.classList.add('correct-effect');
+                setTimeout(() => card.classList.remove('correct-effect'), 500);
+                createFireworks();
+            } else {
+                speak('打错了再接再厉', true, 1.8, 1.0);
+                card.classList.add('wrong-effect');
+                setTimeout(() => card.classList.remove('wrong-effect'), 400);
+            }
+        };
+
+        window.toggleSpeech = function() {
+            speechEnabled = !speechEnabled;
+            const btn = document.getElementById('speechToggleBtn');
+            if (speechEnabled) {
+                btn.innerText = '🔊 关闭语音';
+                // 预先填充语音列表
+                window.speechSynthesis.getVoices();
+                // 静默激活
+                const u = new SpeechSynthesisUtterance('');
+                u.volume = 0;
+                window.speechSynthesis.speak(u);
+            } else {
+                btn.innerText = '🔇 开启语音';
+                speechQueue = [];
+                if (isSpeaking) {
+                    window.speechSynthesis.cancel();
+                    isSpeaking = false;
+                }
+            }
+        };
+
+        function speakNormal(text) {
+            speak(text, false, 1.0, 0.9);
+        }
+
+        // 队伍管理
+        function renderTeams() {
+            const grid = document.getElementById('teamGrid'); 
+            grid.innerHTML = '';
+            teamConfig.forEach(t => {
+                const tile = document.createElement('div'); 
+                tile.className = 'team-tile'; 
+                tile.id = `tile-${t.id}`;
+                tile.innerHTML = `<div class="team-score" id="score-${t.id}">${t.score}</div>
+                    <div class="team-name">${t.name}</div>
+                    <div class="score-ops">
+                        <button class="score-btn-small" onclick="adjustTeamScore(${t.id}, 1)">+</button>
+                        <button class="score-btn-small" onclick="adjustTeamScore(${t.id}, -1)">-</button>
+                    </div>`;
+                grid.appendChild(tile);
+            });
+            applyRankingEffects();
+        }
+
+        function applyRankingEffects() {
+            const sorted = [...teamConfig].sort((a, b) => b.score - a.score);
+            teamConfig.forEach(team => {
+                const tile = document.getElementById(`tile-${team.id}`);
+                if (!tile) return;
+                tile.classList.remove('rank-1', 'rank-2', 'rank-3');
+            });
+            sorted.forEach((team, idx) => {
+                const tile = document.getElementById(`tile-${team.id}`);
+                if (idx === 0) tile.classList.add('rank-1');
+                else if (idx === 1) tile.classList.add('rank-2');
+                else if (idx === 2) tile.classList.add('rank-3');
+            });
+        }
+
+        function updateRanking() {
+            const sorted = [...teamConfig].sort((a, b) => b.score - a.score);
+            const rankList = document.getElementById('rankList');
+            rankList.innerHTML = '';
+            sorted.forEach((team, index) => {
+                const li = document.createElement('li');
+                li.className = 'rank-item';
+                const nameSpan = document.createElement('span');
+                nameSpan.innerText = `${index+1}. ${team.name}`;
+                if (index === 0) nameSpan.classList.add('rank-name-1');
+                else if (index === 1) nameSpan.classList.add('rank-name-2');
+                else if (index === 2) nameSpan.classList.add('rank-name-3');
+                const scoreSpan = document.createElement('span');
+                scoreSpan.className = 'rank-score';
+                scoreSpan.innerText = team.score;
+                li.appendChild(nameSpan);
+                li.appendChild(scoreSpan);
+                rankList.appendChild(li);
+            });
+            applyRankingEffects();
+        }
+
+        window.adjustTeamScore = function(teamId, delta) {
+            const team = teamConfig.find(t => t.id === teamId);
+            if (!team) return;
+            team.score = Math.max(0, team.score + delta);
+            document.getElementById(`score-${teamId}`).innerText = team.score;
+            const actionText = delta > 0 ? `加${delta}分` : `减${-delta}分`;
+            speakNormal(`${team.name}，${actionText}`);
+            updateRanking();
+        };
+
+        window.resetAllScores = function() { 
+            teamConfig.forEach(t => { t.score = 10; document.getElementById(`score-${t.id}`).innerText = 10; }); 
+            updateRanking();
+        };
+
+        window.toggleFullscreen = function() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        };
+
+        async function loadQuestions() {
+            try {
+                const res = await fetch('./研发知识题库.xlsx');
+                const data = await res.arrayBuffer();
+                const wb = XLSX.read(data, {type:'array'});
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
+                allQuestions = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const r = rows[i]; 
+                    if (!r || r.length < 3) continue;
+                    const type = r[0]?.toString().trim() || '未知';
+                    const question = r[1]?.toString().trim();
+                    const answer = r[2]?.toString().trim().toUpperCase();
+                    if (!question || !answer) continue;
+                    const options = [];
+                    for (let j = 3; j <= 14; j++) {
+                        if (r[j]?.toString().trim()) options.push(r[j].toString().trim());
+                    }
+                    allQuestions.push({ type, question, answer, options });
+                }
+                document.getElementById('questionType').innerText = `📚 题库 ${allQuestions.length} 题`;
+                document.getElementById('question').innerText = '题库就绪，点击「随机出题」';
+            } catch(e) {
+                document.getElementById('question').innerText = '题库加载失败，请检查文件';
+            }
+        }
+
+        function adjustFontSize(element, maxFont=60, minFont=24) {
+            const wrapper = element.parentElement;
+            const containerHeight = wrapper.clientHeight;
+            const containerWidth = wrapper.clientWidth;
+            element.style.fontSize = maxFont + 'px';
+            let fontSize = maxFont;
+            while ((element.scrollWidth > containerWidth || element.scrollHeight > containerHeight) && fontSize > minFont) {
+                fontSize -= 2;
+                element.style.fontSize = fontSize + 'px';
+            }
+        }
+
+        function buildOptionsSpeech(options) {
+            if (!options.length) return '';
+            const letters = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+            return options.map((o,i) => `选项${letters[i]}、${o}`).join('；');
+        }
+
+        window.nextQuestion = function() {
+            if (!allQuestions.length) return alert('请先加载题库');
+            const q = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+            currentAnswer = q.answer;
+            currentOptions = q.options || [];
+            currentType = q.type;
+            
+            document.getElementById('questionType').innerText = `📌 ${q.type}`;
+            const qTextEl = document.getElementById('question');
+            qTextEl.innerText = q.question;
+            setTimeout(() => adjustFontSize(qTextEl, 60, 24), 10);
+            
+            const optDiv = document.getElementById('optionsArea');
+            if (currentOptions.length) {
+                const letters = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+                optDiv.innerHTML = currentOptions.map((o,i) => `<div class="option-item"><strong>${letters[i]}</strong> ${o}</div>`).join('');
+            } else optDiv.innerHTML = '<div class="option-item">(本题无选项，口头作答)</div>';
+            
+            showAnswerFlag = false;
+            document.getElementById('answerText').innerText = '参考答案：********';
+            
+            answeredCount = Math.min(answeredCount + 1, totalQuestions);
+            answeredDisplay.innerText = answeredCount;
+            
+            if (speechEnabled) {
+                speakNormal(`${q.type}题`);
+                speakNormal(q.question);
+                const optSpeech = buildOptionsSpeech(currentOptions);
+                if (optSpeech) speakNormal(optSpeech);
+            }
+        };
+
+        window.toggleAnswer = function() {
+            showAnswerFlag = !showAnswerFlag;
+            const answerTextEl = document.getElementById('answerText');
+            if (showAnswerFlag) {
+                answerTextEl.innerText = `参考答案：${currentAnswer}`;
+                if (speechEnabled && currentAnswer) {
+                    speakNormal(`正确答案是 ${currentAnswer.split('').join(' ')}`);
+                }
+            } else {
+                answerTextEl.innerText = '参考答案：********';
+            }
+        };
+
+        window.clearQuestion = function() {
+            document.getElementById('questionType').innerText = `📚 题库 ${allQuestions.length} 题`;
+            document.getElementById('question').innerText = '点击「随机出题」开始';
+            document.getElementById('optionsArea').innerHTML = '';
+            document.getElementById('answerText').innerText = '参考答案：********';
+            currentAnswer = '';
+            currentOptions = [];
+            showAnswerFlag = false;
+        };
+
+        window.resetProgress = function() {
+            answeredCount = 0;
+            answeredDisplay.innerText = '0';
+        };
+
+        window.onload = async function() {
+            renderTeams();
+            await loadQuestions();
+            updateRanking();
+            answeredDisplay.innerText = '0';
+            totalInput.value = 30;
+        };
+    })();
+</script>
+</body>
+</html>
